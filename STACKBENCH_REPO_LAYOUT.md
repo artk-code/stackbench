@@ -1,14 +1,14 @@
-# Stackbench v2 - REPO LAYOUT
+# Stackbench - REPO LAYOUT
 
 Date: 2026-03-16
 Status: Active
-Depends on: `STACKBENCH_V2_AGENTS.md`, `STACKBENCH_V2_ARCHITECTURE.md`, `STACKBENCH_V2_DESKTOP_PLAN.md`
+Depends on: `STACKBENCH_AGENTS.md`, `STACKBENCH_ARCHITECTURE.md`, `STACKBENCH_DESKTOP_PLAN.md`
 
 ## Purpose
-Describe the current repo shape for the v2 runtime and desktop workbench.
+Describe the current repo shape for the runtime and desktop workbench.
 
 ## Workspace Strategy
-Stackbench v2 keeps the existing Cargo workspace shell and shared dependency management, but the repo now carries only the runtime and workbench needed for the Stackbench cutover.
+Stackbench keeps the existing Cargo workspace shell and shared dependency management, but the repo now carries only the runtime and workbench needed for the Stackbench cutover.
 
 Top-level structure:
 
@@ -18,7 +18,7 @@ desktop/
 docs/
 scripts/
 README.md
-STACKBENCH_V2_*.md
+STACKBENCH_*.md
 STACKBENCH_CUTOVER_CHECKLIST.md
 Cargo.toml
 package.json
@@ -140,7 +140,7 @@ scripts/
 - legacy browser and tmux orchestration code is intentionally absent from this repo shape.
 
 ## Configuration Shape
-Stackbench v2 assumes a repository-local config file:
+Stackbench assumes a repository-local config file:
 
 ```text
 swb.toml

@@ -8,7 +8,7 @@ DEFAULT_LANE_DIR="${SWB_JJ_LANE_DIR:-$REPO_ROOT/.workspaces}"
 
 usage() {
   cat <<EOF
-TRACE jj multi-agent workflow helper
+Stackbench jj multi-agent workflow helper
 
 Usage:
   $0 <command> [args]

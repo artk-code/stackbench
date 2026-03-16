@@ -906,7 +906,7 @@ fn apply_run_state_change(
 }
 
 fn write_usage<W: Write>(writer: &mut W) -> std::io::Result<()> {
-    writeln!(writer, "Stackbench v2 CLI")?;
+    writeln!(writer, "Stackbench CLI")?;
     writeln!(
         writer,
         "  swb run start <TASK_ID> [--workflow NAME] [--adapter NAME] [--prompt TEXT] [--json]"
@@ -1175,7 +1175,6 @@ mod tests {
                 .as_str()
                 .unwrap(),
             root.join(".swb")
-                .join("v2")
                 .join("workspaces")
                 .join(&run_id)
                 .display()

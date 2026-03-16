@@ -8,26 +8,26 @@ Build Stackbench as a local workbench for running coding agents against a reposi
 
 ## Active Docs
 - `README.md`
-- `STACKBENCH_V2_AGENTS.md`
-- `STACKBENCH_V2_ARCHITECTURE.md`
-- `STACKBENCH_V2_REPO_LAYOUT.md`
-- `STACKBENCH_V2_ROADMAP.md`
-- `STACKBENCH_V2_DESKTOP_PLAN.md`
-- `STACKBENCH_V2_CANONICAL_STATE.md`
-- `STACKBENCH_V2_ADAPTER_CONTRACT.md`
-- `STACKBENCH_V2_GSTACK_SPEC.md`
-- `STACKBENCH_V2_PERSONA_PROFILE_MAPPING.md`
-- `STACKBENCH_V2_EVAL_LEASE_RUNTIME.md`
+- `STACKBENCH_AGENTS.md`
+- `STACKBENCH_ARCHITECTURE.md`
+- `STACKBENCH_REPO_LAYOUT.md`
+- `STACKBENCH_ROADMAP.md`
+- `STACKBENCH_DESKTOP_PLAN.md`
+- `STACKBENCH_CANONICAL_STATE.md`
+- `STACKBENCH_ADAPTER_CONTRACT.md`
+- `STACKBENCH_GSTACK_SPEC.md`
+- `STACKBENCH_PERSONA_PROFILE_MAPPING.md`
+- `STACKBENCH_EVAL_LEASE_RUNTIME.md`
 - `STACKBENCH_CUTOVER_CHECKLIST.md`
 
 ## Repo Scope
-This repo is intentionally trimmed to the v2 runtime and desktop workbench.
+This repo is intentionally trimmed to the runtime and desktop workbench.
 
 Included:
 - Rust runtime crates under `crates/`
 - `desktop/` Electron workbench
 - `scripts/swb-jj.sh`
-- current v2 design and contract docs
+- current design and contract docs
 - current product README and screenshots
 
 Excluded:
@@ -68,7 +68,7 @@ Excluded:
 - `swb adapter auth login`
 
 ## Current Priorities
-1. Keep the local runtime and desktop workbench aligned with the v2 docs.
+1. Keep the local runtime and desktop workbench aligned with the docs.
 2. Validate Linux packaging on a Debian host.
 3. Bundle a production `swb` binary into packaged desktop builds.
 4. Improve auth remediation for adapters that need an external TTY.

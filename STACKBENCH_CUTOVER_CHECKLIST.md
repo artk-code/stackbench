@@ -1,6 +1,6 @@
 # Stackbench Cutover Checklist
 
-Use this when creating the fresh `stackbench` repo and preparing the first commit from this trimmed v2 tree.
+Use this when creating the fresh `stackbench` repo and preparing the first commit from this trimmed Stackbench tree.
 
 ## Include
 - `crates/swb-core`
@@ -16,17 +16,17 @@ Use this when creating the fresh `stackbench` repo and preparing the first commi
 - `desktop/`
 - `docs/stackbench-workbench-macos.png`
 - root workspace files needed to build the Rust and desktop packages
-- the v2 architecture and contract docs that still describe the current product truth
+- the architecture and contract docs that still describe the current product truth
 
 ## Exclude
 - legacy Phase 0 tmux and browser docs that only describe the old system
 - archived plan refresh bundles
-- old screenshots with TRACE branding
+- old screenshots with legacy branding
 - any leftover local `web/` artifacts; the tracked browser UI is already removed from this repo
 
 ## Decide At Repo Creation
 1. whether the binary should stay `swb` or get the full `stackbench` name
-2. whether the new repo should keep only v2 docs or keep a small migration note for context
+2. whether the new repo should keep only docs or keep a small migration note for context
 
 ## First Commit Goal
 The first Stackbench commit should feel like a coherent product baseline:
@@ -34,7 +34,7 @@ The first Stackbench commit should feel like a coherent product baseline:
 - screenshot matches the current desktop brand
 - desktop smoke tests pass
 - Electron packaging works locally
-- v2 runtime and desktop docs match the shipped behavior
+- runtime and desktop docs match the shipped behavior
 
 ## Immediate Follow-On
 1. validate `pnpm --dir desktop make` on Debian or Ubuntu

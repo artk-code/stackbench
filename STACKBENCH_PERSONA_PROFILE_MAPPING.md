@@ -1,8 +1,8 @@
-# Stackbench v2 - Persona And Profile Mapping
+# Stackbench - Persona And Profile Mapping
 
 Date: 2026-03-16
 Status: Active
-Depends on: `STACKBENCH_V2_GSTACK_SPEC.md`, `STACKBENCH_V2_ADAPTER_CONTRACT.md`, `STACKBENCH_V2_GAP_CLOSURE.md`
+Depends on: `STACKBENCH_GSTACK_SPEC.md`, `STACKBENCH_ADAPTER_CONTRACT.md`, `STACKBENCH_GAP_CLOSURE.md`
 
 ## Purpose
 Separate human-facing invocation names from machine-executable runtime profiles.
@@ -91,4 +91,4 @@ The external docs correctly separate:
 - invocation alias
 - runtime behavior
 
-The current repo has the runtime and config boundaries needed for a persona/profile split, but it does not yet expose that split through the CLI or desktop shell. Stackbench v2 should adopt the persona/profile model without collapsing it into adapter names or workflow shortcuts.
+The current repo has the runtime and config boundaries needed for a persona/profile split, but it does not yet expose that split through the CLI or desktop shell. Stackbench should adopt the persona/profile model without collapsing it into adapter names or workflow shortcuts.

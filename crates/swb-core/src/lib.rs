@@ -9,9 +9,9 @@ use thiserror::Error;
 use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
 pub const SWB_CONFIG_FILE: &str = "swb.toml";
-pub const SWB_V2_DIR: &str = ".swb/v2";
-pub const SWB_V2_QUEUE_DB_FILE: &str = "ingest.sqlite3";
-pub const SWB_V2_STATE_DB_FILE: &str = "state.sqlite3";
+pub const SWB_DATA_DIR: &str = ".swb";
+pub const SWB_QUEUE_DB_FILE: &str = "ingest.sqlite3";
+pub const SWB_STATE_DB_FILE: &str = "state.sqlite3";
 
 static RUN_COUNTER: AtomicU64 = AtomicU64::new(1);
 
@@ -27,11 +27,11 @@ pub struct SwbPaths {
 impl SwbPaths {
     pub fn new(root: impl AsRef<Path>) -> Self {
         let root = root.as_ref().to_path_buf();
-        let data_dir = root.join(SWB_V2_DIR);
+        let data_dir = root.join(SWB_DATA_DIR);
         Self {
             config_path: root.join(SWB_CONFIG_FILE),
-            queue_db_path: data_dir.join(SWB_V2_QUEUE_DB_FILE),
-            state_db_path: data_dir.join(SWB_V2_STATE_DB_FILE),
+            queue_db_path: data_dir.join(SWB_QUEUE_DB_FILE),
+            state_db_path: data_dir.join(SWB_STATE_DB_FILE),
             data_dir,
             root,
         }
@@ -292,10 +292,10 @@ mod tests {
     use super::{generate_run_id, IngestEnvelope, IngestKind, RunRequest, RunState, SwbPaths};
 
     #[test]
-    fn swb_paths_use_v2_directory() {
+    fn swb_paths_use_data_directory() {
         let paths = SwbPaths::new("/tmp/swb-root");
-        assert!(paths.queue_db_path.ends_with(".swb/v2/ingest.sqlite3"));
-        assert!(paths.state_db_path.ends_with(".swb/v2/state.sqlite3"));
+        assert!(paths.queue_db_path.ends_with(".swb/ingest.sqlite3"));
+        assert!(paths.state_db_path.ends_with(".swb/state.sqlite3"));
         assert!(paths.config_path.ends_with("swb.toml"));
     }
 

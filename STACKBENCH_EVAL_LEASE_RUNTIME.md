@@ -1,11 +1,11 @@
-# Stackbench v2 - Evaluation And Lease Runtime
+# Stackbench - Evaluation And Lease Runtime
 
 Date: 2026-03-16
 Status: Active
-Depends on: `STACKBENCH_V2_CANONICAL_STATE.md`, `STACKBENCH_V2_GAP_CLOSURE.md`
+Depends on: `STACKBENCH_CANONICAL_STATE.md`, `STACKBENCH_GAP_CLOSURE.md`
 
 ## Purpose
-Define the deterministic evaluation contract and the lease fencing model used when TRACE executes task-scoped work across competing workers or ingress surfaces.
+Define the deterministic evaluation contract and the lease fencing model used when Stackbench executes task-scoped work across competing workers or ingress surfaces.
 
 ## Evaluation Runtime
 ### Inputs
@@ -98,4 +98,4 @@ If the carried epoch is stale relative to the canonical lease state, Stackbench 
 ## Relation To Current Repo Baseline
 The current repo already has the local evaluation gate and the canonical run-state progression needed for the workbench loop.
 
-Lease fencing remains a spec requirement for later competing workers or ingress paths. The worthwhile move for Stackbench v2 is to keep lease semantics explicit and ready for that future transport layer, while keeping the current local evaluation contract deterministic rather than aggregation-only.
+Lease fencing remains a spec requirement for later competing workers or ingress paths. The worthwhile move for Stackbench is to keep lease semantics explicit and ready for that future transport layer, while keeping the current local evaluation contract deterministic rather than aggregation-only.

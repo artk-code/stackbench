@@ -1,23 +1,23 @@
-# Stackbench v2 - Desktop Plan
+# Stackbench - Desktop Plan
 
 Date: 2026-03-16
 Status: Draft
-Depends on: `STACKBENCH_V2_ARCHITECTURE.md`, `STACKBENCH_V2_ADAPTER_CONTRACT.md`, `STACKBENCH_V2_PERSONA_PROFILE_MAPPING.md`, `STACKBENCH_V2_GAP_CLOSURE.md`
+Depends on: `STACKBENCH_ARCHITECTURE.md`, `STACKBENCH_ADAPTER_CONTRACT.md`, `STACKBENCH_PERSONA_PROFILE_MAPPING.md`, `STACKBENCH_GAP_CLOSURE.md`
 
 ## Purpose
-Define the desktop GUI plan for Stackbench v2 so future agents can build the shell without re-litigating architecture, packaging, or auth behavior.
+Define the desktop GUI plan for Stackbench so future agents can build the shell without re-litigating architecture, packaging, or auth behavior.
 
 ## Decision
-Stackbench v2 should use an Electron desktop shell for the first GUI.
+Stackbench should use an Electron desktop shell for the first GUI.
 
 Why this is the current direction:
 - the repo already has a TypeScript and Vite desktop baseline
-- Electron lets TRACE ship a polished local operator shell quickly
+- Electron lets Stackbench ship a polished local operator shell quickly
 - macOS packaging is already working locally and Linux packaging is a clear next step
 - desktop shell quality matters more than strict binary size right now
 
 ## Scope
-The desktop app is an operator shell around the Rust v2 core.
+The desktop app is an operator shell around the Rust core.
 
 The desktop app is not:
 - a second orchestrator
@@ -181,7 +181,7 @@ This package should stay separate from:
 ## Open Questions
 - should the desktop app eventually call a local HTTP receiver instead of the CLI
 - should login actions open an embedded terminal panel or always externalize unsupported interactive flows
-- when packaged, should TRACE bundle adapter CLIs or require user-managed installs
+- when packaged, should Stackbench bundle adapter CLIs or require user-managed installs
 - should profile and persona selection be in the first desktop milestone or after the local run loop feels stable
 
 ## Implementation Order

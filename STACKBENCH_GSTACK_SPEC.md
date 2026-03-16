@@ -1,11 +1,11 @@
-# Stackbench v2 - gstack Specification
+# Stackbench - gstack Specification
 
 Date: 2026-03-16
 Status: Active
-Depends on: `STACKBENCH_V2_CANONICAL_STATE.md`, `STACKBENCH_V2_GAP_CLOSURE.md`
+Depends on: `STACKBENCH_CANONICAL_STATE.md`, `STACKBENCH_GAP_CLOSURE.md`
 
 ## Purpose
-Define `gstack` as the first-class prompt composition model for Stackbench v2.
+Define `gstack` as the first-class prompt composition model for Stackbench.
 
 ## Definition
 A `gstack` is an ordered set of prompt layers that resolves into the runtime context given to one adapter execution.
@@ -40,7 +40,7 @@ It exists so Stackbench can:
 - `dynamic_note`
 
 ## Resolution Order
-TRACE resolves a gstack in this order:
+Stackbench resolves a gstack in this order:
 1. runtime layer
 2. role layers
 3. persona layers
@@ -81,7 +81,7 @@ Optimization must not:
 - drop imperative statements
 - change tool or policy semantics
 
-If optimization is used, TRACE records:
+If optimization is used, Stackbench records:
 - optimization mode
 - pre-optimization hash
 - post-optimization hash

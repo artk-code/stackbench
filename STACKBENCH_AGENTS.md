@@ -1,25 +1,25 @@
-# Stackbench v2 - AGENTS
+# Stackbench - AGENTS
 
 Date: 2026-03-16
 Status: Active
-Depends on: `STACKBENCH_V2_ARCHITECTURE.md`, `STACKBENCH_V2_REPO_LAYOUT.md`, `STACKBENCH_V2_ROADMAP.md`, `STACKBENCH_V2_GAP_CLOSURE.md`, `STACKBENCH_V2_DESKTOP_PLAN.md`
+Depends on: `STACKBENCH_ARCHITECTURE.md`, `STACKBENCH_REPO_LAYOUT.md`, `STACKBENCH_ROADMAP.md`, `STACKBENCH_GAP_CLOSURE.md`, `STACKBENCH_DESKTOP_PLAN.md`
 
 ## Purpose
-Define the product intent, operating model, and ownership boundaries for Stackbench v2.
+Define the product intent, operating model, and ownership boundaries for Stackbench.
 
 ## Supporting Specs
-- `STACKBENCH_V2_GAP_CLOSURE.md`
-- `STACKBENCH_V2_CANONICAL_STATE.md`
-- `STACKBENCH_V2_GSTACK_SPEC.md`
-- `STACKBENCH_V2_ADAPTER_CONTRACT.md`
-- `STACKBENCH_V2_PERSONA_PROFILE_MAPPING.md`
-- `STACKBENCH_V2_EVAL_LEASE_RUNTIME.md`
-- `STACKBENCH_V2_DESKTOP_PLAN.md`
+- `STACKBENCH_GAP_CLOSURE.md`
+- `STACKBENCH_CANONICAL_STATE.md`
+- `STACKBENCH_GSTACK_SPEC.md`
+- `STACKBENCH_ADAPTER_CONTRACT.md`
+- `STACKBENCH_PERSONA_PROFILE_MAPPING.md`
+- `STACKBENCH_EVAL_LEASE_RUNTIME.md`
+- `STACKBENCH_DESKTOP_PLAN.md`
 
 ## Mission
-Stackbench v2 is a local-first software execution system that launches coding adapters against a repository, records canonical execution state, evaluates produced changes, and gates integration through explicit human approval.
+Stackbench is a local-first software execution system that launches coding adapters against a repository, records canonical execution state, evaluates produced changes, and gates integration through explicit human approval.
 
-Stackbench v2 focuses on orchestration, state ownership, and integration discipline. It does not try to be a new model framework.
+Stackbench focuses on orchestration, state ownership, and integration discipline. It does not try to be a new model framework.
 
 ## Core Principles
 - Stackbench owns canonical state for tasks, runs, evaluation, approval, and integration.
@@ -38,7 +38,7 @@ Stackbench v2 focuses on orchestration, state ownership, and integration discipl
 - Preserving server-era monolith patterns as the target architecture.
 
 ## Canonical Ownership
-TRACE owns the following records:
+Stackbench owns the following records:
 - task intent and metadata
 - run lifecycle state
 - adapter execution envelopes
@@ -134,7 +134,7 @@ A `workflow` is a configured execution graph describing:
 - which evaluation commands apply
 - which approval rules gate integration
 
-`manager`, `coder`, and `reviewer` may exist as named workflow steps later, but Stackbench v2 does not hardcode those roles into the architecture.
+`manager`, `coder`, and `reviewer` may exist as named workflow steps later, but Stackbench does not hardcode those roles into the architecture.
 
 ## Selective Reuse In This Repo
 Useful concepts retained in the current repo:
@@ -144,4 +144,4 @@ Useful concepts retained in the current repo:
 - canonical projection and timeline views in `swb-state`
 - `jj` workflow concepts from [scripts/swb-jj.sh](scripts/swb-jj.sh)
 
-Stackbench v2 does not treat any monolithic server-style runtime as the target design.
+Stackbench does not treat any monolithic server-style runtime as the target design.

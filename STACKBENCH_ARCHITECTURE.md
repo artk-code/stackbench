@@ -1,19 +1,19 @@
-# Stackbench v2 - ARCHITECTURE
+# Stackbench - ARCHITECTURE
 
 Date: 2026-03-16
 Status: Active
-Depends on: `STACKBENCH_V2_AGENTS.md`, `STACKBENCH_V2_REPO_LAYOUT.md`, `STACKBENCH_V2_CANONICAL_STATE.md`, `STACKBENCH_V2_ADAPTER_CONTRACT.md`, `STACKBENCH_V2_DESKTOP_PLAN.md`
+Depends on: `STACKBENCH_AGENTS.md`, `STACKBENCH_REPO_LAYOUT.md`, `STACKBENCH_CANONICAL_STATE.md`, `STACKBENCH_ADAPTER_CONTRACT.md`, `STACKBENCH_DESKTOP_PLAN.md`
 
 ## Purpose
-Define the current v2 architecture for the local runtime, canonical state path, evaluation flow, and desktop workbench integration.
+Define the current architecture for the local runtime, canonical state path, evaluation flow, and desktop workbench integration.
 
 Supporting runtime specs:
-- `STACKBENCH_V2_CANONICAL_STATE.md`
-- `STACKBENCH_V2_GSTACK_SPEC.md`
-- `STACKBENCH_V2_ADAPTER_CONTRACT.md`
-- `STACKBENCH_V2_PERSONA_PROFILE_MAPPING.md`
-- `STACKBENCH_V2_EVAL_LEASE_RUNTIME.md`
-- `STACKBENCH_V2_DESKTOP_PLAN.md`
+- `STACKBENCH_CANONICAL_STATE.md`
+- `STACKBENCH_GSTACK_SPEC.md`
+- `STACKBENCH_ADAPTER_CONTRACT.md`
+- `STACKBENCH_PERSONA_PROFILE_MAPPING.md`
+- `STACKBENCH_EVAL_LEASE_RUNTIME.md`
+- `STACKBENCH_DESKTOP_PLAN.md`
 
 ## Canonical Flow
 ```mermaid
@@ -157,14 +157,14 @@ Those additions must preserve:
 - durable enqueue before acknowledgment
 
 ## Selective Reuse In The Current Repo
-Useful concepts now live in the retained v2 runtime:
+Useful concepts now live in the retained runtime:
 - normalized domain envelopes in `swb-core`
 - durable append and replay discipline in `swb-queue-sqlite`
 - auth doctor and login flows in `swb-adapters`
 - `jj` integration guardrails in `scripts/swb-jj.sh`
 
 ## Explicit Exclusions
-Stackbench v2 does not carry these as core architecture:
+Stackbench does not carry these as core architecture:
 - direct adapter writes into canonical state
 - tmux-first orchestration
 - browser-first control surfaces

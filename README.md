@@ -1,5 +1,7 @@
 # Stackbench
 
+*A local workbench for running, reviewing, and integrating agent work.*
+
 Stackbench is a local workbench for running coding agents against a repository, inspecting a canonical event timeline, and integrating only the changes a human approves.
 
 ![Stackbench workbench on macOS](docs/stackbench-workbench-macos.png)
@@ -26,7 +28,7 @@ Stackbench takes the opposite position: runs should stay legible enough that a h
 ## Current Product Shape
 - Rust core for queueing, canonical state, evaluation, approval, and `jj` integration
 - Electron workbench for dispatch, auth checks, logs, watch mode, and review actions
-- SQLite-backed ingest queue and canonical state store under `.swb/v2/`
+- SQLite-backed ingest queue and canonical state store under `.swb/`
 - Playwright desktop smoke tests that launch Electron against a prebuilt `swb` binary
 
 ## Quickstart
@@ -86,12 +88,9 @@ swb adapter auth login
 - `docs/` for screenshots, plans, and operator notes
 
 ## Supporting Docs
-- [STACKBENCH_V2_ARCHITECTURE.md](STACKBENCH_V2_ARCHITECTURE.md)
-- [STACKBENCH_V2_REPO_LAYOUT.md](STACKBENCH_V2_REPO_LAYOUT.md)
-- [STACKBENCH_V2_ROADMAP.md](STACKBENCH_V2_ROADMAP.md)
-- [STACKBENCH_V2_DESKTOP_PLAN.md](STACKBENCH_V2_DESKTOP_PLAN.md)
-- [STACKBENCH_V2_ADAPTER_CONTRACT.md](STACKBENCH_V2_ADAPTER_CONTRACT.md)
-- [STACKBENCH_V2_CANONICAL_STATE.md](STACKBENCH_V2_CANONICAL_STATE.md)
-
-## Suggested Tagline
-`A local workbench for running, reviewing, and integrating agent work.`
+- [STACKBENCH_ARCHITECTURE.md](STACKBENCH_ARCHITECTURE.md)
+- [STACKBENCH_REPO_LAYOUT.md](STACKBENCH_REPO_LAYOUT.md)
+- [STACKBENCH_ROADMAP.md](STACKBENCH_ROADMAP.md)
+- [STACKBENCH_DESKTOP_PLAN.md](STACKBENCH_DESKTOP_PLAN.md)
+- [STACKBENCH_ADAPTER_CONTRACT.md](STACKBENCH_ADAPTER_CONTRACT.md)
+- [STACKBENCH_CANONICAL_STATE.md](STACKBENCH_CANONICAL_STATE.md)

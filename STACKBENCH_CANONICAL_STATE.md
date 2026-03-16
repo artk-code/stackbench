@@ -1,11 +1,11 @@
-# Stackbench v2 - Canonical State
+# Stackbench - Canonical State
 
 Date: 2026-03-16
 Status: Active
-Depends on: `STACKBENCH_V2_ARCHITECTURE.md`, `STACKBENCH_V2_GAP_CLOSURE.md`
+Depends on: `STACKBENCH_ARCHITECTURE.md`, `STACKBENCH_GAP_CLOSURE.md`
 
 ## Purpose
-Define the canonical identifiers, record types, ownership rules, and lifecycle transitions used across Stackbench v2.
+Define the canonical identifiers, record types, ownership rules, and lifecycle transitions used across Stackbench.
 
 ## Ownership Rule
 Stackbench owns canonical state for:
@@ -27,7 +27,7 @@ External systems may request work or receive status, but they do not become the 
 
 ### `run_id`
 - globally unique execution identity
-- created by TRACE when work is accepted
+- created by Stackbench when work is accepted
 - never reused
 
 ### `step_id`
@@ -185,7 +185,7 @@ Phase 1 may add task- and lease-scoped event kinds, but they must preserve the s
 - any optimization cache must remain disposable
 
 ## Relation To Current Repo Baseline
-The current repo already carries the v2 state model in executable form:
+The current repo already carries the current state model in executable form:
 - canonical identifiers and event kinds in `swb-core`
 - durable ingest ordering in `swb-queue-sqlite`
 - replay-safe projection and timeline persistence in `swb-state`

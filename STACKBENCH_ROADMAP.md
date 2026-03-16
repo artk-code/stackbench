@@ -1,8 +1,8 @@
-# Stackbench v2 - ROADMAP
+# Stackbench - ROADMAP
 
 Date: 2026-03-16
 Status: Active
-Depends on: `STACKBENCH_V2_AGENTS.md`, `STACKBENCH_V2_ARCHITECTURE.md`, `STACKBENCH_V2_REPO_LAYOUT.md`, `STACKBENCH_V2_GAP_CLOSURE.md`, `STACKBENCH_V2_DESKTOP_PLAN.md`
+Depends on: `STACKBENCH_AGENTS.md`, `STACKBENCH_ARCHITECTURE.md`, `STACKBENCH_REPO_LAYOUT.md`, `STACKBENCH_GAP_CLOSURE.md`, `STACKBENCH_DESKTOP_PLAN.md`
 
 ## Purpose
 Sequence delivery for the local runtime, desktop workbench, and the next cutover steps toward the `stackbench` repo.
@@ -90,4 +90,4 @@ Rules:
 - direct adapter writes into task or run state
 
 ## Success Condition
-Stackbench v2 is successful when this repo can be lifted into a new `stackbench` repository with minimal churn because the local runtime, desktop workbench, screenshot, README, and operator docs already describe one coherent product.
+Stackbench is successful when this repo can be lifted into a new `stackbench` repository with minimal churn because the local runtime, desktop workbench, screenshot, README, and operator docs already describe one coherent product.

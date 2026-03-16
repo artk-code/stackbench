@@ -385,7 +385,7 @@ mod tests {
         let run = state.get_run(&request.run_id).unwrap().unwrap();
         assert_eq!(run.state, RunState::AwaitingReview);
         assert!(root
-            .join(".swb/v2/workspaces")
+            .join(".swb/workspaces")
             .join(&request.run_id)
             .join("execution.txt")
             .exists());

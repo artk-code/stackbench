@@ -1,11 +1,11 @@
-# Stackbench v2 - Adapter Contract
+# Stackbench - Adapter Contract
 
 Date: 2026-03-16
 Status: Active
-Depends on: `STACKBENCH_V2_CANONICAL_STATE.md`, `STACKBENCH_V2_GSTACK_SPEC.md`, `STACKBENCH_V2_GAP_CLOSURE.md`
+Depends on: `STACKBENCH_CANONICAL_STATE.md`, `STACKBENCH_GSTACK_SPEC.md`, `STACKBENCH_GAP_CLOSURE.md`
 
 ## Purpose
-Define the normalized I/O, auth, and lifecycle contract for all Stackbench v2 adapters.
+Define the normalized I/O, auth, and lifecycle contract for all Stackbench adapters.
 
 ## Adapter Goal
 An adapter wraps one runtime-specific tool and makes it look like the same execution surface to the launcher.
@@ -131,7 +131,7 @@ These are stable integration points for a desktop shell or future remote control
 - auth checks in the GUI must go through the same launcher or CLI contract as terminal use
 
 ## Unsupported Behavior
-Stackbench v2 should reject adapter integrations that require:
+Stackbench should reject adapter integrations that require:
 - scraping unstructured terminal output with no stable success semantics
 - direct mutation of canonical state
 - hidden network callbacks into the state receiver
