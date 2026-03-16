@@ -1,0 +1,13 @@
+{
+  "name": "stackbench-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "desktop:build": "pnpm --dir desktop build",
+    "desktop:dev": "pnpm --dir desktop dev",
+    "desktop:lint": "pnpm --dir desktop lint",
+    "desktop:test:e2e": "pnpm --dir desktop test:e2e",
+    "desktop:capture:screenshot": "pnpm --dir desktop capture:screenshot",
+    "desktop:make": "pnpm --dir desktop make"
+  }
+}

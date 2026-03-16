@@ -1,0 +1,14 @@
+[package]
+name = "swb-adapters"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+swb-config = { path = "../swb-config" }
+
+[lints]
+workspace = true

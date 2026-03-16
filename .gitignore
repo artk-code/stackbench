@@ -1,0 +1,17 @@
+/target
+/node_modules
+/web/node_modules
+/web/dist
+/web/tsconfig.tsbuildinfo
+/web/playwright-report
+/web/test-results
+/desktop/node_modules
+/desktop/out
+/desktop/.vite
+/desktop/playwright-report
+/desktop/test-results
+/.swb
+/.swb-smoke
+/.workspaces
+/.jj
+.DS_Store

@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stackbench</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="hero">
+        <div class="hero-copy-block">
+          <p class="eyebrow">Stackbench</p>
+          <h1>Keep local agent runs legible, reviewable, and under human control.</h1>
+          <p class="hero-copy">
+            Dispatch work, watch adapters, read the canonical timeline, and integrate only the change you trust. This shell is for operators who want leverage without losing the thread.
+          </p>
+          <div class="hero-signals">
+            <div class="signal">
+              <span class="signal-label">Queue</span>
+              <strong>Launch local runs without leaving the workbench.</strong>
+            </div>
+            <div class="signal">
+              <span class="signal-label">Timeline</span>
+              <strong>See the accepted event history before making a review call.</strong>
+            </div>
+            <div class="signal">
+              <span class="signal-label">Control</span>
+              <strong>Keep people in the approval and integration loop.</strong>
+            </div>
+          </div>
+        </div>
+        <div class="hero-card">
+          <div class="hero-card-head">
+            <div class="label">Workspace</div>
+            <div class="hero-chip">Human-operated</div>
+          </div>
+          <div id="repo-root" class="repo-root"></div>
+          <div class="status-grid">
+            <div class="status-block">
+              <div class="label">Runtime</div>
+              <div id="runtime-mode" class="runtime-mode"></div>
+            </div>
+            <div class="status-block">
+              <div class="label">Suggested next</div>
+              <div id="next-step" class="next-step"></div>
+            </div>
+          </div>
+          <div class="actions">
+            <button id="choose-repo" class="secondary">Switch Workspace</button>
+            <button id="refresh-all" class="secondary">Refresh Views</button>
+          </div>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="panel panel-deep">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Launcher</p>
+              <h2>Watchtower</h2>
+            </div>
+            <div class="inline">
+              <label for="watch-interval">Interval ms</label>
+              <input id="watch-interval" type="number" min="250" step="250" value="1000" />
+            </div>
+          </div>
+          <p class="panel-copy">
+            Pulse the queue once when you want a deliberate step, or keep the watch running when you want the workbench to keep draining local runs while you review.
+          </p>
+          <div class="actions">
+            <button id="run-once">Pulse Queue</button>
+            <button id="start-watch">Start Watch</button>
+            <button id="stop-watch" class="secondary">Stop Watch</button>
+          </div>
+          <div id="launcher-status" class="status-line"></div>
+          <pre id="watch-feed" class="feed"></pre>
+        </section>
+
+        <section class="panel panel-soft">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Tooling</p>
+              <h2>Adapter Ready State</h2>
+            </div>
+          </div>
+          <p class="panel-copy">
+            Check what is installed, what is logged in, and what still needs human remediation before you dispatch work.
+          </p>
+          <div id="auth-cards" class="stack"></div>
+        </section>
+
+        <section class="panel panel-bright">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Dispatch</p>
+              <h2>Brief The Run</h2>
+            </div>
+          </div>
+          <p class="panel-copy">
+            Give the adapter just enough context to work. Stackbench keeps the resulting state and timeline canonical after the run starts moving.
+          </p>
+          <form id="start-run-form" class="form">
+            <label>
+              <span>Task ID</span>
+              <input id="task-id" type="text" placeholder="TASK-123" required />
+            </label>
+            <label>
+              <span>Workflow</span>
+              <input id="workflow-name" type="text" placeholder="default" />
+            </label>
+            <label>
+              <span>Adapter</span>
+              <input id="adapter-name" type="text" placeholder="codex" />
+            </label>
+            <label>
+              <span>Prompt</span>
+              <textarea id="prompt" rows="4" placeholder="Describe the change to make."></textarea>
+            </label>
+            <div class="actions">
+              <button type="submit">Dispatch Run</button>
+            </div>
+          </form>
+          <div id="run-start-status" class="status-line"></div>
+        </section>
+
+        <section class="panel wide panel-ledger">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Ledger</p>
+              <h2>Run Board</h2>
+            </div>
+            <span class="caption">Every attempt stays visible with its current state and last event.</span>
+          </div>
+          <div id="runs-table" class="runs-table"></div>
+        </section>
+
+        <section class="panel wide panel-timeline">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Review</p>
+              <h2>Timeline And Decision</h2>
+            </div>
+            <div class="inline">
+              <label for="log-limit">Limit</label>
+              <input id="log-limit" type="number" min="10" step="10" value="200" />
+            </div>
+          </div>
+          <p class="panel-copy">
+            Read the accepted event trail, then decide whether the run should move forward, get rejected, or integrate into the repo.
+          </p>
+          <div id="selected-run-meta" class="status-line"></div>
+          <div class="run-actions">
+            <input id="run-action-note" type="text" placeholder="Optional review reason or integration message" />
+            <div class="actions">
+              <button id="approve-run">Approve</button>
+              <button id="reject-run" class="secondary">Reject</button>
+              <button id="integrate-run" class="secondary">Integrate</button>
+            </div>
+          </div>
+          <div id="logs-meta" class="status-line"></div>
+          <div id="logs-view" class="logs-view"></div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="./renderer.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+[package]
+name = "swb-eval"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+thiserror.workspace = true
+swb-config = { path = "../swb-config" }
+
+[lints]
+workspace = true

@@ -1,0 +1,27 @@
+{
+  "name": "stackbench-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "main": ".vite/build/main.cjs",
+  "scripts": {
+    "build:swb-bin": "cargo build -q -p swb-cli --manifest-path ../Cargo.toml",
+    "build": "vite build -c vite.main.config.ts && vite build -c vite.preload.config.ts && vite build -c vite.renderer.config.ts",
+    "dev": "electron-forge start",
+    "lint": "tsc --noEmit",
+    "test:e2e": "pnpm run build:swb-bin && pnpm run build && playwright test",
+    "capture:screenshot": "pnpm run build:swb-bin && pnpm run build && SWB_DESKTOP_SCREENSHOT_PATH=../docs/stackbench-workbench-macos.png playwright test --grep @desktop-smoke",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.11.1",
+    "@electron-forge/maker-deb": "^7.11.1",
+    "@electron-forge/plugin-vite": "^7.11.1",
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^25.5.0",
+    "electron": "^41.0.2",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}
