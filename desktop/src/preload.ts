@@ -38,6 +38,9 @@ type RunRecord = {
   task_id: string;
   workflow: string;
   adapter: string;
+  profile_id: string | null;
+  gstack_id: string | null;
+  gstack_fingerprint: string | null;
   state: string;
   created_at: string;
   updated_at: string;
@@ -56,7 +59,29 @@ type RunStartResponse = {
   task_id: string;
   workflow: string;
   adapter: string;
+  profile_id: string | null;
+  gstack_id: string | null;
+  gstack_fingerprint: string | null;
   queue_entry: number;
+};
+
+type WorkerTypeRecord = {
+  id: string;
+  display_name: string;
+  description: string;
+  workflow: string | null;
+  adapter: string | null;
+  gstack_id: string;
+  file_path: string;
+  instructions_markdown: string;
+};
+
+type WorkerTypeListResponse = {
+  profiles: WorkerTypeRecord[];
+};
+
+type WorkerTypeSaveResponse = {
+  profile: WorkerTypeRecord;
 };
 
 type RunLogRecord = {
@@ -117,9 +142,24 @@ const api = {
     taskId: string;
     workflow?: string;
     adapter?: string;
+    profile?: string;
     prompt?: string;
   }): Promise<RunStartResponse> {
     return ipcRenderer.invoke("swb:run-start", payload);
+  },
+  listWorkerTypes(): Promise<WorkerTypeListResponse> {
+    return ipcRenderer.invoke("swb:profile-list");
+  },
+  saveWorkerType(payload: {
+    id: string;
+    displayName: string;
+    description?: string;
+    workflow?: string;
+    adapter?: string;
+    gstackId?: string;
+    instructionsMarkdown?: string;
+  }): Promise<WorkerTypeSaveResponse> {
+    return ipcRenderer.invoke("swb:profile-save", payload);
   },
   getRunLogs(payload: { runId: string; limit: number }): Promise<RunLogsResponse> {
     return ipcRenderer.invoke("swb:run-logs", payload);

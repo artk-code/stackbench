@@ -52,6 +52,26 @@ Stackbench resolves a gstack in this order:
 
 Later layers may refine earlier instructions but may not silently replace core runtime rules.
 
+## Current Implemented Slice
+The current repo ships a deliberately smaller executable slice:
+1. runtime layer from `swb/prompts/runtime/default.md` or the built-in fallback
+2. one markdown-backed worker-type profile from `swb/profiles/*.md`
+3. optional ingress-facing persona metadata from `swb/personas/<ingress>/`
+4. task layer from operator input
+
+So the current runtime path is `runtime -> profile -> task`, with persona defaults affecting profile, workflow, and adapter selection.
+
+What is recorded today:
+- `persona_id`
+- `profile_id`
+- `gstack_id`
+- `gstack_fingerprint`
+
+What remains planned:
+- persona prompt layers
+- tooling and workspace layers as first-class resolved objects
+- GUI preview of resolved layers before dispatch
+
 ## Merge Rules
 - order is explicit and preserved
 - duplicate layers are removed only when `source` and `content_hash` match exactly
@@ -107,6 +127,7 @@ This does not replace the Rust workspace. It is the repo-local asset layout used
 - a profile selects runtime and tools
 - a profile references a `gstack_id` or inline stack layers
 - the resolved gstack is recorded on the run
+- the current repo implements profiles as markdown-backed worker types
 
 ## Relationship To Personas
 - a persona is an operator-facing alias or ingress preset
@@ -129,10 +150,13 @@ This does not replace the Rust workspace. It is the repo-local asset layout used
 ```
 
 ## Relation To Current Repo Baseline
-The current repo has config and runtime boundaries where a first-class prompt stack can land cleanly, but it does not yet have:
-- first-class prompt stack identity
-- reusable layer resolution
-- prompt fingerprints
-- a distinction between role prompt, persona alias, and runtime profile
+The current repo now has a first usable prompt-stack baseline:
+- first-class prompt stack identity through `gstack_id`
+- deterministic `gstack_fingerprint` values recorded on runs
+- reusable markdown-backed worker-type profiles
+- persona ingress aliases that resolve into the same profile and gstack path
 
-`gstack` is the worthwhile addition from the external bundle and should become the reusable prompt abstraction going forward.
+What it still does not have:
+- persona prompt layers as first-class content in the resolved stack
+- multi-layer tooling and workspace resolution
+- a richer preview surface for resolved prompt stacks

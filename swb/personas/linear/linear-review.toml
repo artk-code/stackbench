@@ -1,0 +1,7 @@
+id = "linear-review"
+display_name = "Linear Review"
+description = "Queue a review run from a labeled Linear issue or a /swb Linear comment."
+ingress = "linear"
+default_profile = "eng-review"
+default_workflow = "default"
+default_adapter = "codex"

@@ -1,0 +1,7 @@
+id = "slack-review"
+display_name = "Slack Review"
+description = "Queue an engineering review run from a Slack slash command or interactive action."
+ingress = "slack"
+default_profile = "eng-review"
+default_workflow = "default"
+default_adapter = "codex"

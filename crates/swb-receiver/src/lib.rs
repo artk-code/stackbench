@@ -1,8 +1,8 @@
 use std::path::Path;
 
-use thiserror::Error;
 use swb_queue_sqlite::{QueueError, SqliteIngestQueue};
 use swb_state::{SqliteStateStore, StateError};
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DrainReport {

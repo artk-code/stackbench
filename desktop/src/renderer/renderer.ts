@@ -6,6 +6,9 @@ type RunLogRecord = RunLogsResponse["logs"][number];
 type AdapterStatus = Awaited<
   ReturnType<typeof window.workbench.getAdapterAuthStatus>
 >["adapters"][number];
+type WorkerTypeRecord = Awaited<
+  ReturnType<typeof window.workbench.listWorkerTypes>
+>["profiles"][number];
 type WatchEvent = Parameters<
   Parameters<typeof window.workbench.onLauncherWatchEvent>[0]
 >[0];
@@ -13,6 +16,9 @@ type WatchEvent = Parameters<
 const state = {
   desktop: null as DesktopState | null,
   adapters: [] as AdapterStatus[],
+  workerTypes: [] as WorkerTypeRecord[],
+  dispatchWorkerTypeId: "" as string,
+  editorWorkerTypeId: "" as string,
   runs: [] as RunRecord[],
   selectedRunId: "" as string,
   logs: [] as RunLogRecord[],
@@ -25,15 +31,27 @@ const nextStepEl = requiredElement<HTMLDivElement>("next-step");
 const launcherStatusEl = requiredElement<HTMLDivElement>("launcher-status");
 const watchFeedEl = requiredElement<HTMLPreElement>("watch-feed");
 const authCardsEl = requiredElement<HTMLDivElement>("auth-cards");
+const workerTypesListEl = requiredElement<HTMLDivElement>("worker-types-list");
+const workerTypeStatusEl = requiredElement<HTMLDivElement>("worker-type-status");
 const runStartStatusEl = requiredElement<HTMLDivElement>("run-start-status");
 const runsTableEl = requiredElement<HTMLDivElement>("runs-table");
 const selectedRunMetaEl = requiredElement<HTMLDivElement>("selected-run-meta");
 const logsMetaEl = requiredElement<HTMLDivElement>("logs-meta");
 const logsViewEl = requiredElement<HTMLDivElement>("logs-view");
+const profileHintEl = requiredElement<HTMLDivElement>("profile-hint");
 const taskIdInput = requiredElement<HTMLInputElement>("task-id");
+const profileSelect = requiredElement<HTMLSelectElement>("profile-select");
 const workflowInput = requiredElement<HTMLInputElement>("workflow-name");
 const adapterInput = requiredElement<HTMLInputElement>("adapter-name");
 const promptInput = requiredElement<HTMLTextAreaElement>("prompt");
+const workerTypeIdInput = requiredElement<HTMLInputElement>("worker-type-id");
+const workerTypeDisplayNameInput = requiredElement<HTMLInputElement>("worker-type-display-name");
+const workerTypeWorkflowInput = requiredElement<HTMLInputElement>("worker-type-workflow");
+const workerTypeAdapterInput = requiredElement<HTMLInputElement>("worker-type-adapter");
+const workerTypeDescriptionInput = requiredElement<HTMLInputElement>("worker-type-description");
+const workerTypeInstructionsInput = requiredElement<HTMLTextAreaElement>(
+  "worker-type-instructions",
+);
 const runActionNoteInput = requiredElement<HTMLInputElement>("run-action-note");
 const logLimitInput = requiredElement<HTMLInputElement>("log-limit");
 const watchIntervalInput = requiredElement<HTMLInputElement>("watch-interval");
@@ -49,6 +67,7 @@ document
     state.logs = [];
     state.feed = [];
     watchFeedEl.textContent = "";
+    clearWorkerTypeEditor();
     await refreshAll();
   });
 document.getElementById("refresh-all")?.addEventListener("click", () => refreshAll());
@@ -77,6 +96,19 @@ document.getElementById("stop-watch")?.addEventListener("click", async () => {
   updateDesktopState(next);
   appendFeed("launcher watch stopped");
 });
+profileSelect.addEventListener("change", () => {
+  state.dispatchWorkerTypeId = profileSelect.value;
+  renderDispatchWorkerType();
+});
+document.getElementById("new-worker-type")?.addEventListener("click", () => {
+  state.editorWorkerTypeId = "";
+  clearWorkerTypeEditor();
+  renderWorkerTypeList();
+  workerTypeStatusEl.textContent = "Drafting a new worker type.";
+});
+document.getElementById("save-worker-type")?.addEventListener("click", () => {
+  void saveWorkerType();
+});
 document
   .getElementById("start-run-form")
   ?.addEventListener("submit", async (event) => {
@@ -84,11 +116,13 @@ document
     try {
       const response = await window.workbench.startRun({
         taskId: taskIdInput.value.trim(),
+        profile: optionalValue(profileSelect.value),
         workflow: optionalValue(workflowInput.value),
         adapter: optionalValue(adapterInput.value),
         prompt: optionalValue(promptInput.value),
       });
-      runStartStatusEl.textContent = `Dispatched ${response.run_id} on ${response.adapter}.`;
+      const label = response.profile_id ? ` with ${response.profile_id}` : "";
+      runStartStatusEl.textContent = `Dispatched ${response.run_id} on ${response.adapter}${label}.`;
       taskIdInput.value = "";
       promptInput.value = "";
       await refreshRunsAndLogs(response.run_id);
@@ -123,19 +157,58 @@ window.setInterval(() => {
 
 async function refreshAll(): Promise<void> {
   updateDesktopState(await window.workbench.getState());
-  await Promise.all([refreshAdapters(), refreshRunsAndLogs(state.selectedRunId || undefined)]);
+  await Promise.all([
+    refreshAdapters(),
+    refreshWorkerTypes(),
+    refreshRunsAndLogs(state.selectedRunId || undefined),
+  ]);
 }
 
 async function refreshAdapters(): Promise<void> {
   try {
     const response = await window.workbench.getAdapterAuthStatus();
     state.adapters = response.adapters;
-    if (!adapterInput.value.trim() && state.adapters[0]) {
+    if (!adapterInput.value.trim() && state.adapters[0] && !dispatchWorkerTypeRecord()?.adapter) {
       adapterInput.value = state.adapters[0].name;
     }
     renderAuthCards();
+    renderDispatchWorkerType();
   } catch (error) {
     authCardsEl.textContent = messageOf(error);
+  }
+}
+
+async function refreshWorkerTypes(): Promise<void> {
+  try {
+    const response = await window.workbench.listWorkerTypes();
+    state.workerTypes = response.profiles;
+
+    if (
+      state.dispatchWorkerTypeId &&
+      !state.workerTypes.some((workerType) => workerType.id === state.dispatchWorkerTypeId)
+    ) {
+      state.dispatchWorkerTypeId = "";
+    }
+    if (!state.dispatchWorkerTypeId && state.workerTypes[0]) {
+      state.dispatchWorkerTypeId = state.workerTypes[0].id;
+    }
+
+    if (
+      state.editorWorkerTypeId &&
+      !state.workerTypes.some((workerType) => workerType.id === state.editorWorkerTypeId)
+    ) {
+      state.editorWorkerTypeId = "";
+    }
+    if (!state.editorWorkerTypeId && !workerTypeIdInput.value.trim() && state.workerTypes[0]) {
+      selectWorkerTypeForEditing(state.workerTypes[0].id);
+    }
+
+    renderWorkerTypeSelect();
+    renderWorkerTypeList();
+    renderDispatchWorkerType();
+  } catch (error) {
+    workerTypesListEl.textContent = messageOf(error);
+    workerTypeStatusEl.textContent = messageOf(error);
   }
 }
 
@@ -207,19 +280,162 @@ function renderAuthCards(): void {
       }),
     );
     actions.appendChild(
-      makeButton("Login", "secondary", async () => {
-        await triggerLogin(adapter.name, false);
-      }, !adapter.login_supported),
+      makeButton(
+        "Login",
+        "secondary",
+        async () => {
+          await triggerLogin(adapter.name, false);
+        },
+        !adapter.login_supported,
+      ),
     );
     actions.appendChild(
-      makeButton("Device Login", "", async () => {
-        await triggerLogin(adapter.name, true);
-      }, !adapter.device_login_supported),
+      makeButton(
+        "Device Login",
+        "",
+        async () => {
+          await triggerLogin(adapter.name, true);
+        },
+        !adapter.device_login_supported,
+      ),
     );
 
     card.append(head, actions, detailBlock(authDetail(adapter)));
     authCardsEl.appendChild(card);
   }
+}
+
+function renderWorkerTypeSelect(): void {
+  profileSelect.replaceChildren();
+
+  const noneOption = document.createElement("option");
+  noneOption.value = "";
+  noneOption.textContent = "Custom prompt only";
+  profileSelect.appendChild(noneOption);
+
+  for (const workerType of state.workerTypes) {
+    const option = document.createElement("option");
+    option.value = workerType.id;
+    option.textContent = workerType.display_name;
+    option.selected = workerType.id === state.dispatchWorkerTypeId;
+    profileSelect.appendChild(option);
+  }
+
+  profileSelect.value = state.dispatchWorkerTypeId;
+}
+
+function renderDispatchWorkerType(): void {
+  const workerType = dispatchWorkerTypeRecord();
+  if (!workerType) {
+    profileHintEl.textContent =
+      "No worker type selected. Dispatch will use the raw prompt and any direct workflow or adapter overrides.";
+    if (!workflowInput.value.trim()) {
+      workflowInput.placeholder = "default";
+    }
+    if (!adapterInput.value.trim()) {
+      adapterInput.placeholder = state.adapters[0]?.name ?? "codex";
+    }
+    return;
+  }
+
+  profileHintEl.textContent = [
+    workerType.description,
+    `Defaults to workflow ${workerType.workflow ?? "default"} on ${workerType.adapter ?? "the workflow default adapter"}.`,
+    `gstack ${workerType.gstack_id}.`,
+  ]
+    .filter((line) => line.trim() !== "")
+    .join(" ");
+
+  if (!workflowInput.value.trim()) {
+    workflowInput.placeholder = workerType.workflow ?? "default";
+  }
+  if (!adapterInput.value.trim()) {
+    adapterInput.placeholder = workerType.adapter ?? state.adapters[0]?.name ?? "codex";
+  }
+}
+
+function renderWorkerTypeList(): void {
+  workerTypesListEl.replaceChildren();
+  if (state.workerTypes.length === 0) {
+    workerTypesListEl.textContent = "No worker types yet. Save the first one to create swb/profiles/*.md.";
+    return;
+  }
+
+  for (const workerType of state.workerTypes) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = `worker-type-row${workerType.id === state.editorWorkerTypeId ? " selected" : ""}`;
+    row.addEventListener("click", () => {
+      selectWorkerTypeForEditing(workerType.id);
+    });
+
+    const title = document.createElement("strong");
+    title.textContent = workerType.display_name;
+
+    const meta = document.createElement("div");
+    meta.className = "worker-type-meta";
+    meta.textContent = `${workerType.id} | ${workerType.workflow ?? "default"} | ${workerType.adapter ?? "workflow default"}`;
+
+    const detail = document.createElement("div");
+    detail.className = "detail";
+    detail.textContent = workerType.description || "No description yet.";
+
+    row.append(title, meta, detail);
+    workerTypesListEl.appendChild(row);
+  }
+}
+
+function selectWorkerTypeForEditing(workerTypeId: string): void {
+  state.editorWorkerTypeId = workerTypeId;
+  const workerType = editorWorkerTypeRecord();
+  if (workerType) {
+    populateWorkerTypeEditor(workerType);
+  }
+  renderWorkerTypeList();
+}
+
+async function saveWorkerType(): Promise<void> {
+  const id = workerTypeIdInput.value.trim();
+  const displayName = workerTypeDisplayNameInput.value.trim();
+  if (!id || !displayName) {
+    workerTypeStatusEl.textContent = "Worker type ID and display name are required.";
+    return;
+  }
+
+  try {
+    const response = await window.workbench.saveWorkerType({
+      id,
+      displayName,
+      description: optionalValue(workerTypeDescriptionInput.value),
+      workflow: optionalValue(workerTypeWorkflowInput.value),
+      adapter: optionalValue(workerTypeAdapterInput.value),
+      instructionsMarkdown: workerTypeInstructionsInput.value,
+    });
+    state.editorWorkerTypeId = response.profile.id;
+    state.dispatchWorkerTypeId = response.profile.id;
+    workerTypeStatusEl.textContent = `Saved ${response.profile.display_name} to ${response.profile.file_path}.`;
+    await refreshWorkerTypes();
+  } catch (error) {
+    workerTypeStatusEl.textContent = messageOf(error);
+  }
+}
+
+function populateWorkerTypeEditor(workerType: WorkerTypeRecord): void {
+  workerTypeIdInput.value = workerType.id;
+  workerTypeDisplayNameInput.value = workerType.display_name;
+  workerTypeWorkflowInput.value = workerType.workflow ?? "";
+  workerTypeAdapterInput.value = workerType.adapter ?? "";
+  workerTypeDescriptionInput.value = workerType.description;
+  workerTypeInstructionsInput.value = workerType.instructions_markdown;
+}
+
+function clearWorkerTypeEditor(): void {
+  workerTypeIdInput.value = "";
+  workerTypeDisplayNameInput.value = "";
+  workerTypeWorkflowInput.value = "";
+  workerTypeAdapterInput.value = "";
+  workerTypeDescriptionInput.value = "";
+  workerTypeInstructionsInput.value = "";
 }
 
 function renderRuns(): void {
@@ -242,12 +458,12 @@ function renderRuns(): void {
     const main = document.createElement("div");
     main.className = "run-main";
     const title = document.createElement("strong");
-    title.textContent = `${run.task_id} • ${run.adapter}`;
+    title.textContent = `${run.task_id} • ${run.profile_id ?? run.adapter}`;
     main.append(title, makeTag(run.state, stateTagKind(run.state)));
 
     const meta = document.createElement("div");
     meta.className = "run-meta";
-    meta.textContent = `${run.run_id} | workflow ${run.workflow} | updated ${run.updated_at}`;
+    meta.textContent = `${run.run_id} | workflow ${run.workflow} | adapter ${run.adapter} | updated ${run.updated_at}`;
 
     row.append(main, meta);
     runsTableEl.appendChild(row);
@@ -258,8 +474,12 @@ function renderLogs(): void {
   logsViewEl.replaceChildren();
   const selectedRun = selectedRunRecord();
   if (selectedRun) {
+    const workerTypeText = selectedRun.profile_id
+      ? ` using worker type ${selectedRun.profile_id}`
+      : "";
+    const gstackText = selectedRun.gstack_id ? ` gstack ${selectedRun.gstack_id}.` : "";
     selectedRunMetaEl.textContent =
-      `${selectedRun.task_id} is ${selectedRun.state} on ${selectedRun.adapter}. Last recorded event: ${selectedRun.last_event_kind}.`;
+      `${selectedRun.task_id} is ${selectedRun.state} on ${selectedRun.adapter}${workerTypeText}. Last recorded event: ${selectedRun.last_event_kind}.${gstackText}`;
   } else {
     selectedRunMetaEl.textContent = "Select a run to review its timeline and decide what happens next.";
   }
@@ -436,6 +656,14 @@ function statusKind(adapter: AdapterStatus): "success" | "warning" | "danger" | 
   return "neutral";
 }
 
+function dispatchWorkerTypeRecord(): WorkerTypeRecord | undefined {
+  return state.workerTypes.find((workerType) => workerType.id === state.dispatchWorkerTypeId);
+}
+
+function editorWorkerTypeRecord(): WorkerTypeRecord | undefined {
+  return state.workerTypes.find((workerType) => workerType.id === state.editorWorkerTypeId);
+}
+
 function selectedRunRecord(): RunRecord | undefined {
   return state.runs.find((run) => run.run_id === state.selectedRunId);
 }
@@ -462,7 +690,11 @@ function renderNextStep(): void {
     nextStepEl.textContent = "Select a run from the board to inspect its trail and make the next call.";
     return;
   }
-  nextStepEl.textContent = "Choose a workspace, check adapter readiness, and dispatch the first run.";
+  if (state.workerTypes.length > 0) {
+    nextStepEl.textContent = "Pick a worker type, check adapter readiness, and dispatch the first run.";
+    return;
+  }
+  nextStepEl.textContent = "Create a worker type or use a custom prompt, then dispatch the first run.";
 }
 
 function syncRunActionButtons(run: RunRecord | undefined): void {

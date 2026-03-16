@@ -37,10 +37,11 @@ The first desktop release should cover:
 - approve, reject, and integrate
 
 Later additions may include:
-- persona and profile selection
-- gstack preview
+- persona presets
+- richer gstack preview
 - workspace browsing
 - Slack ingress visibility
+- external refs and outbound update views
 
 ## Architecture
 ### Core rule
@@ -72,8 +73,11 @@ Minimum stable machine interface:
 - `swb run status --json`
 - `swb run list --json`
 - `swb run logs --json`
+- `swb persona list --json`
+- `swb persona show <PERSONA_ID> --json`
 - `swb launcher run-once --json`
 - `swb launcher watch --json`
+- `swb outbound list --json`
 - `swb adapter list --json`
 - `swb adapter doctor --json`
 - `swb adapter auth status --json`
@@ -152,6 +156,8 @@ The renderer should treat these as first-class views:
 - run summary list
 - run log timeline
 - launcher watch feed
+- ingress persona list
+- external refs and outbound updates for a selected run
 - last error or remediation message
 
 It should not invent its own run lifecycle or approval semantics.
@@ -182,7 +188,7 @@ This package should stay separate from:
 - should the desktop app eventually call a local HTTP receiver instead of the CLI
 - should login actions open an embedded terminal panel or always externalize unsupported interactive flows
 - when packaged, should Stackbench bundle adapter CLIs or require user-managed installs
-- should profile and persona selection be in the first desktop milestone or after the local run loop feels stable
+- how much of the resolved gstack should be visible before dispatch without turning the shell into a prompt editor
 
 ## Implementation Order
 1. stabilize machine-readable CLI and auth contract
@@ -190,7 +196,8 @@ This package should stay separate from:
 3. ship run list, logs, and launcher watch
 4. ship adapter auth status and login flows
 5. add approval and integration actions
-6. add profile/persona and gstack views later
+6. add worker-type selection and editing
+7. add persona presets and richer gstack preview later
 
 ## Current Implemented Slice
 The current repo desktop shell includes:
@@ -198,6 +205,8 @@ The current repo desktop shell includes:
 - repo selection and runtime mode display
 - adapter auth status and login actions
 - run start, run list, selected run log timeline, and launcher watch feed
+- markdown-backed worker-type selection in the dispatch flow
+- worker-type creation and editing for repo-local `swb/profiles/*.md`
 - approve, reject, and integrate actions for the selected run
 - production packaging verified through `pnpm --dir desktop package`
 
@@ -205,7 +214,8 @@ Still pending for the next desktop milestone:
 - bundling the Rust `swb` binary into packaged builds
 - explicit handling for login flows that require an external terminal TTY
 - Linux `.deb` verification on an actual Debian or Ubuntu host
-- persona, profile, and gstack views
+- persona presets and richer gstack preview
+- ingress visibility for Slack and Linear external refs and outbound updates
 
 ## Immediate Next Work
 Future agents should prioritize this order:
@@ -213,7 +223,8 @@ Future agents should prioritize this order:
 2. bundle the Rust `swb` binary into packaged desktop builds and stop depending on Cargo in production
 3. make adapter login remediation explicit when a login flow requires an external TTY
 4. add filtered log views and pagination before expanding into richer workspace browsing
-5. add persona, profile, and `gstack` views only after the packaged local operator loop is solid
+5. add external ref and outbound update views before Slack approval actions or Linear sync work
+6. add persona presets and richer `gstack` preview only after the packaged local operator loop is solid
 
 ## Relation To Current Repo
 This repo now contains a first desktop operator shell, machine-readable CLI contracts for the implemented flows, and Electron packaging that has been verified on the current host.

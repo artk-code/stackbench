@@ -12,6 +12,7 @@ Define the product intent, operating model, and ownership boundaries for Stackbe
 - `STACKBENCH_CANONICAL_STATE.md`
 - `STACKBENCH_GSTACK_SPEC.md`
 - `STACKBENCH_ADAPTER_CONTRACT.md`
+- `STACKBENCH_INGRESS_SPEC.md`
 - `STACKBENCH_PERSONA_PROFILE_MAPPING.md`
 - `STACKBENCH_EVAL_LEASE_RUNTIME.md`
 - `STACKBENCH_DESKTOP_PLAN.md`
@@ -48,6 +49,10 @@ Stackbench owns the following records:
 
 External systems may later submit requests or receive status updates, but they do not own execution truth.
 
+Current additive ingress metadata is also owned locally:
+- external reference mappings
+- queued outbound status updates
+
 ## Operator Model
 The current slice assumes a single machine and a human operator using the `swb` CLI or desktop shell.
 
@@ -59,8 +64,14 @@ Primary operator actions:
 - `swb run approve`
 - `swb run reject`
 - `swb run integrate`
+- `swb persona list`
+- `swb persona show`
+- `swb persona save`
 - `swb launcher run-once`
 - `swb launcher watch`
+- `swb ingress serve`
+- `swb outbound list`
+- `swb outbound mark`
 - `swb adapter list`
 - `swb adapter doctor`
 
@@ -72,6 +83,13 @@ Current implemented slice in the repo:
 - foreground launcher execution through `swb launcher run-once`
 - foreground polling through `swb launcher watch`
 - canonical timeline inspection through `swb run logs`
+- markdown-backed worker types under `swb/profiles`
+- `swb profile list|show|save`
+- ingress-facing personas under `swb/personas`
+- `swb persona list|show|save`
+- minimal gstack resolution and fingerprinting recorded on runs
+- local Slack and Linear ingress over `swb-ingress-http`
+- additive external refs and queued outbound updates in canonical state
 - approval, rejection, and `jj` integration commands
 
 ## Responsibility Boundaries
@@ -99,6 +117,13 @@ Current implemented slice in the repo:
 - derives canonical state from accepted ingest records
 - maintains stable task, run, evaluation, approval, and integration views
 
+### Ingress
+- verifies Slack and Linear webhook authenticity when secrets are configured
+- resolves personas into the existing profile and gstack model
+- enqueues normalized run requests
+- records additive external refs and outbound status updates
+- never owns approval or canonical run-state progression
+
 ### Evaluator
 - runs repository-defined checks inside the run workspace
 - records pass or fail outcomes
@@ -112,10 +137,13 @@ The current slice includes:
 - launcher-owned canonical writes
 - SQLite-backed durable ingest queue
 - configurable workflows
+- markdown-backed worker-type profiles
+- repo-local personas for Slack and Linear ingress
 - multi-adapter support through one normalized adapter contract
 - `jj` workspaces for run isolation and integration artifacts
 - repository tests as the default automated gate
 - human approval before integration
+- additive ingress metadata for external refs and outbound updates
 
 The current slice excludes:
 - browser-first control surfaces
@@ -123,7 +151,9 @@ The current slice excludes:
 - external brokers as a requirement
 
 - branch or PR automation as the primary artifact path
-- Slack or Linear ingress
+- Slack approval actions
+- Linear comment or status sync
+- lease fencing across mixed ingress paths
 
 Desktop GUI work in this repo remains an operator shell over the same launcher, ingest queue, receiver, projector, and canonical state described in the supporting specs.
 

@@ -25,17 +25,38 @@ test.describe("Stackbench Desktop", () => {
       await expect(page.locator("#repo-root")).toContainText(path.basename(fixture.repoRoot));
       await expect(page.locator(".auth-card")).toContainText("codex");
       await expect(page.locator(".auth-card")).toContainText("logged in");
+      await expect(page.locator("#profile-select")).toContainText("Engineering Review");
+      await expect(page.locator("#worker-types-list")).toContainText("Engineering Review");
+
+      await page.getByRole("button", { name: "New Worker Type" }).click();
+      await page.locator("#worker-type-id").fill("deploy-review");
+      await page.locator("#worker-type-display-name").fill("Deployment Review");
+      await page.locator("#worker-type-workflow").fill("default");
+      await page.locator("#worker-type-adapter").fill("codex");
+      await page.locator("#worker-type-description").fill(
+        "Prepare a repository change for release with a deployment-minded review.",
+      );
+      await page.locator("#worker-type-instructions").fill(
+        "Deployment checklist:\n- verify rollout steps\n- call out migration risk\n- keep the ship path explicit",
+      );
+      await page.getByRole("button", { name: "Save Worker Type" }).click();
+      await expect(page.locator("#worker-type-status")).toContainText("Saved Deployment Review");
+      await expect(page.locator("#profile-select")).toContainText("Deployment Review");
+      await expect(page.locator("#profile-select")).toHaveValue("deploy-review");
 
       await page.locator("#task-id").fill("TASK-DESKTOP-SMOKE");
-      await page.locator("#prompt").fill("Implement the desktop smoke flow");
+      await page.locator("#prompt").fill("Prepare this branch for deployment review");
       await page.getByRole("button", { name: "Dispatch Run" }).click();
 
       await expect(page.locator("#run-start-status")).toContainText("Dispatched");
       const firstRun = page.locator(".run-row").first();
       await expect(firstRun).toContainText("TASK-DESKTOP-SMOKE");
+      await expect(firstRun).toContainText("deploy-review");
 
       await page.getByRole("button", { name: "Pulse Queue" }).click();
       await expect(page.locator("#selected-run-meta")).toContainText("awaiting_review");
+      await expect(page.locator("#selected-run-meta")).toContainText("deploy-review");
+      await expect(page.locator("#logs-view")).toContainText("Deployment checklist");
 
       await page.getByRole("button", { name: "Approve" }).click();
       await expect(page.locator("#selected-run-meta")).toContainText("approved");
@@ -46,13 +67,14 @@ test.describe("Stackbench Desktop", () => {
       await expect(page.locator("#logs-view")).toContainText("run_integrated");
 
       await page.locator("#task-id").fill("TASK-DESKTOP-REVIEW");
+      await page.selectOption("#profile-select", "eng-review");
       await page.locator("#prompt").fill("Leave a second run ready for review");
       await page.getByRole("button", { name: "Dispatch Run" }).click();
       await expect(page.locator("#run-start-status")).toContainText("Dispatched");
       await page.getByRole("button", { name: "Pulse Queue" }).click();
       await expect(page.locator("#selected-run-meta")).toContainText("awaiting_review");
       await expect(
-        page.getByRole("button", { name: /TASK-DESKTOP-REVIEW • codex/ }),
+        page.getByRole("button", { name: /TASK-DESKTOP-REVIEW • eng-review/ }),
       ).toBeVisible();
 
       if (screenshotPath) {
@@ -70,6 +92,7 @@ test.describe("Stackbench Desktop", () => {
     try {
       const page = await app.firstWindow();
 
+      await page.selectOption("#profile-select", "eng-review");
       await page.locator("#task-id").fill("TASK-DESKTOP-WATCH");
       await page.locator("#prompt").fill("Exercise launcher watch");
       await page.getByRole("button", { name: "Dispatch Run" }).click();
@@ -115,9 +138,13 @@ async function createFixtureRepo(): Promise<{ root: string; repoRoot: string }> 
   const fakeCodex = path.join(binRoot, "codex");
   const fakeJj = path.join(binRoot, "jj");
   const fakeSwbJj = path.join(repoRoot, "fake-swb-jj.sh");
+  const profilesRoot = path.join(repoRoot, "swb", "profiles");
+  const runtimePromptsRoot = path.join(repoRoot, "swb", "prompts", "runtime");
 
   await mkdir(repoRoot, { recursive: true });
   await mkdir(binRoot, { recursive: true });
+  await mkdir(profilesRoot, { recursive: true });
+  await mkdir(runtimePromptsRoot, { recursive: true });
   await writeExecutable(
     fakeCodex,
     [
@@ -173,6 +200,32 @@ async function createFixtureRepo(): Promise<{ root: string; repoRoot: string }> 
       "fi",
       "echo \"unexpected swb-jj invocation: $*\" >&2",
       "exit 2",
+    ].join("\n"),
+  );
+  await writeFile(
+    path.join(runtimePromptsRoot, "default.md"),
+    [
+      "Stay inside the repository.",
+      "Explain concrete risks and integration blockers.",
+      "Leave a crisp trail another operator can review.",
+    ].join("\n"),
+  );
+  await writeFile(
+    path.join(profilesRoot, "eng-review.md"),
+    [
+      "+++",
+      "id = \"eng-review\"",
+      "display_name = \"Engineering Review\"",
+      "description = \"Review a repository change for implementation quality and risk.\"",
+      "workflow = \"default\"",
+      "adapter = \"codex\"",
+      "gstack_id = \"eng_review_v1\"",
+      "+++",
+      "",
+      "Review checklist:",
+      "- find bugs and regressions",
+      "- call out missing tests",
+      "- explain risky integration edges",
     ].join("\n"),
   );
   await writeFile(

@@ -6,8 +6,8 @@ use std::time::Instant;
 
 use serde::Serialize;
 use serde_json::{json, Value};
-use thiserror::Error;
 use swb_config::{AdapterCapabilities, AdapterConfig, AuthStrategy, PromptMode, SwbConfig};
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct RegisteredAdapter {

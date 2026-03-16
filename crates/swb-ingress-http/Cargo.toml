@@ -1,25 +1,30 @@
 [package]
-name = "swb-cli"
+name = "swb-ingress-http"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
-[[bin]]
-name = "swb"
-path = "src/main.rs"
-
 [dependencies]
+axum.workspace = true
+hex.workspace = true
+hmac.workspace = true
+serde.workspace = true
 serde_json.workspace = true
+serde_urlencoded.workspace = true
+sha2.workspace = true
+thiserror.workspace = true
+time.workspace = true
 tokio.workspace = true
-swb-adapters = { path = "../swb-adapters" }
+tower.workspace = true
+tracing.workspace = true
 swb-config = { path = "../swb-config" }
 swb-core = { path = "../swb-core" }
-swb-ingress-http = { path = "../swb-ingress-http" }
-swb-jj = { path = "../swb-jj" }
-swb-launcher = { path = "../swb-launcher" }
 swb-queue-sqlite = { path = "../swb-queue-sqlite" }
 swb-receiver = { path = "../swb-receiver" }
 swb-state = { path = "../swb-state" }
+
+[dev-dependencies]
+http-body-util = "0.1"
 
 [lints]
 workspace = true

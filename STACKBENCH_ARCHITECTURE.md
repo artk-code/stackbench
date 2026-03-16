@@ -11,6 +11,7 @@ Supporting runtime specs:
 - `STACKBENCH_CANONICAL_STATE.md`
 - `STACKBENCH_GSTACK_SPEC.md`
 - `STACKBENCH_ADAPTER_CONTRACT.md`
+- `STACKBENCH_INGRESS_SPEC.md`
 - `STACKBENCH_PERSONA_PROFILE_MAPPING.md`
 - `STACKBENCH_EVAL_LEASE_RUNTIME.md`
 - `STACKBENCH_DESKTOP_PLAN.md`
@@ -19,6 +20,7 @@ Supporting runtime specs:
 ```mermaid
 flowchart LR
     CLI["swb CLI / desktop action"] --> L["launcher"]
+    I["Slack / Linear ingress"] --> Q["ingest queue (SQLite)"]
     L --> Q["ingest queue (SQLite)"]
     L --> A["adapter process"]
     A --> E["normalized execution events"]
@@ -26,6 +28,8 @@ flowchart LR
     Q --> R["receiver"]
     R --> P["projector"]
     P --> S["canonical state DB"]
+    I --> X["external refs + outbound updates"]
+    X --> S
     P --> V["evaluation runner"]
     V --> P
     P --> H["human approval"]
@@ -37,6 +41,7 @@ flowchart LR
 - The `swb` CLI is the canonical operator interface.
 - The desktop app uses the same machine-readable runtime contracts.
 - The launcher is the only writer into the ingest path.
+- Slack and Linear ingress are additive request surfaces over the same queue path.
 - Adapters emit normalized events and artifacts only.
 - The ingest queue is SQLite-backed in the current implementation.
 - The receiver and projector own canonical state progression.
@@ -61,6 +66,7 @@ Current implementation:
 - `swb-queue-sqlite` persists accepted work
 - `swb-receiver` drains queue entries into projection
 - `swb-state` stores both derived state and applied timeline history for `swb run logs`
+- `swb-ingress-http` uses the same queue path for Slack and Linear work requests
 
 ## Adapter Event Contract
 An `adapter` never writes task or run state directly.
@@ -88,6 +94,23 @@ Required adapter capabilities:
 - artifact extraction support
 - revision or change discovery support
 
+## Current gstack Slice
+The current repo implements a minimal `gstack` path around markdown-backed worker types.
+
+Current resolution order:
+1. runtime prompt from `swb/prompts/runtime/default.md` or the built-in fallback
+2. worker-type profile body from `swb/profiles/<profile_id>.md`
+3. operator task prompt from `swb run start --prompt` or the desktop dispatch form
+
+Current canonical run metadata:
+- `persona_id`
+- `profile_id`
+- `gstack_id`
+- `gstack_fingerprint`
+
+The current implementation now resolves ingress-facing personas from `swb/personas/<ingress>/`.
+The current implementation still does not surface a richer layer-by-layer preview in the GUI.
+
 ## Receiver Responsibilities
 - validate accepted envelopes
 - assign stable ingest metadata
@@ -95,6 +118,13 @@ Required adapter capabilities:
 - expose deterministic replay order to the projector
 
 The receiver does not own provider logic or UI concerns.
+
+## Ingress Responsibilities
+- verify Slack and Linear requests when secrets are configured
+- resolve persona defaults before run creation
+- enqueue normalized `run_requested` work
+- persist external identity mappings and queued outbound status updates
+- avoid direct mutation of canonical run lifecycle state
 
 ## Projector Responsibilities
 - derive canonical task and run state
@@ -111,6 +141,10 @@ Current run progression:
 - `approved` or `rejected`
 - `integrated` or `archived`
 - `failed` and `cancelled`
+
+Current additive ingress records:
+- `external_refs`
+- `outbound_updates`
 
 ## Evaluation And Approval Flow
 After adapter execution completes:
@@ -132,6 +166,8 @@ Rules:
 - desktop does not scrape human-only output where JSON exists
 - auth status and login actions use the same adapter contract exposed to terminal users
 - watch mode is owned by the main process and tied to a repo root
+- worker-type editing goes through repo-local markdown files and machine-readable `swb profile *` contracts
+- future ingress views in desktop should read canonical state and additive ingress metadata instead of building a parallel webhook state model
 
 ## Workspace And Integration Model
 Each runnable step receives an isolated `jj` workspace.

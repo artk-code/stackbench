@@ -9,11 +9,15 @@ use swb_adapters::{
     auth_status_from_config, doctor_from_config, login_adapter, registry_from_config,
     AdapterLoginMode,
 };
-use swb_config::SwbConfig;
-use swb_core::{
-    AdapterEventPayload, IngestEnvelope, IngestKind, RunLogRecord, RunRequest, RunRequestedPayload,
-    RunRecord, RunState, StateChangePayload,
+use swb_config::{
+    get_persona_from_root, get_profile_from_root, list_personas_from_root, list_profiles_from_root,
+    save_persona_to_root, save_profile_to_root, PersonaDraft, ProfileDraft, SwbConfig,
 };
+use swb_core::{
+    AdapterEventPayload, IngestEnvelope, IngestKind, RunLogRecord, RunRecord, RunRequestedPayload,
+    RunState, StateChangePayload,
+};
+use swb_ingress_http::{serve as serve_ingress, ServerOptions};
 use swb_jj::integrate_run;
 use swb_launcher::{run_once, watch, WatchOptions};
 use swb_queue_sqlite::SqliteIngestQueue;
@@ -51,8 +55,12 @@ fn dispatch<W: Write, E: Write>(
 
     match command.as_str() {
         "run" => handle_run(root, args, stdout),
+        "profile" => handle_profile(root, args, stdout),
+        "persona" => handle_persona(root, args, stdout),
         "launcher" => handle_launcher(root, args, stdout),
         "receiver" => handle_receiver(root, args, stdout),
+        "ingress" => handle_ingress(root, args, stdout),
+        "outbound" => handle_outbound(root, args, stdout),
         "adapter" => handle_adapter(root, args, stdout),
         "help" | "--help" | "-h" => {
             write_usage(stdout).map_err(|error| error.to_string())?;
@@ -82,9 +90,11 @@ fn handle_run<W: Write>(
         "start" => {
             let task_id = args
                 .pop_front()
-                .ok_or_else(|| "usage: swb run start <TASK_ID> [--workflow NAME] [--adapter NAME] [--prompt TEXT]".to_string())?;
+                .ok_or_else(|| "usage: swb run start <TASK_ID> [--persona ID] [--profile ID|--worker-type ID] [--workflow NAME] [--adapter NAME] [--prompt TEXT]".to_string())?;
             let mut workflow_name = None;
             let mut adapter_name = None;
+            let mut persona_id = None;
+            let mut profile_id = None;
             let mut prompt = None;
             let mut output_json = false;
 
@@ -94,6 +104,10 @@ fn handle_run<W: Write>(
                         workflow_name = Some(require_flag_value(&mut args, "--workflow")?)
                     }
                     "--adapter" => adapter_name = Some(require_flag_value(&mut args, "--adapter")?),
+                    "--persona" => persona_id = Some(require_flag_value(&mut args, "--persona")?),
+                    "--profile" | "--worker-type" => {
+                        profile_id = Some(require_flag_value(&mut args, flag.as_str())?)
+                    }
                     "--prompt" => prompt = Some(require_flag_value(&mut args, "--prompt")?),
                     "--json" => output_json = true,
                     other => return Err(format!("unknown flag for run start: {other}")),
@@ -101,14 +115,17 @@ fn handle_run<W: Write>(
             }
 
             let config = SwbConfig::load_from_root(&root).map_err(|error| error.to_string())?;
-            let workflow = config
-                .resolve_workflow(workflow_name.as_deref())
+            let request = config
+                .build_run_request(
+                    &root,
+                    &task_id,
+                    workflow_name.as_deref(),
+                    adapter_name.as_deref(),
+                    persona_id.as_deref(),
+                    profile_id.as_deref(),
+                    prompt,
+                )
                 .map_err(|error| error.to_string())?;
-            let adapter = config
-                .resolve_adapter(workflow, adapter_name.as_deref())
-                .map_err(|error| error.to_string())?;
-
-            let request = RunRequest::new(task_id, &workflow.name, &adapter.name, prompt);
             let queue = SqliteIngestQueue::open(&root).map_err(|error| error.to_string())?;
             let queued = queue
                 .enqueue(&IngestEnvelope::run_requested(&request))
@@ -123,14 +140,24 @@ fn handle_run<W: Write>(
                         "task_id": request.task_id,
                         "workflow": request.workflow,
                         "adapter": request.adapter,
+                        "persona_id": request.persona_id,
+                        "profile_id": request.profile_id,
+                        "gstack_id": request.gstack_id,
+                        "gstack_fingerprint": request.gstack_fingerprint,
                         "queue_entry": queued.id,
                     }),
                 )?;
             } else {
                 writeln!(
                     stdout,
-                    "queued\trun_id={}\ttask_id={}\tworkflow={}\tadapter={}\tqueue_entry={}",
-                    request.run_id, request.task_id, request.workflow, request.adapter, queued.id
+                    "queued\trun_id={}\ttask_id={}\tworkflow={}\tadapter={}\tpersona={}\tprofile={}\tqueue_entry={}",
+                    request.run_id,
+                    request.task_id,
+                    request.workflow,
+                    request.adapter,
+                    request.persona_id.as_deref().unwrap_or("n/a"),
+                    request.profile_id.as_deref().unwrap_or("n/a"),
+                    queued.id
                 )
                 .map_err(|error| error.to_string())?;
             }
@@ -166,6 +193,21 @@ fn handle_run<W: Write>(
                 writeln!(stdout, "task_id={}", run.task_id).map_err(|error| error.to_string())?;
                 writeln!(stdout, "workflow={}", run.workflow).map_err(|error| error.to_string())?;
                 writeln!(stdout, "adapter={}", run.adapter).map_err(|error| error.to_string())?;
+                if let Some(persona_id) = &run.persona_id {
+                    writeln!(stdout, "persona_id={persona_id}")
+                        .map_err(|error| error.to_string())?;
+                }
+                if let Some(profile_id) = &run.profile_id {
+                    writeln!(stdout, "profile_id={profile_id}")
+                        .map_err(|error| error.to_string())?;
+                }
+                if let Some(gstack_id) = &run.gstack_id {
+                    writeln!(stdout, "gstack_id={gstack_id}").map_err(|error| error.to_string())?;
+                }
+                if let Some(gstack_fingerprint) = &run.gstack_fingerprint {
+                    writeln!(stdout, "gstack_fingerprint={gstack_fingerprint}")
+                        .map_err(|error| error.to_string())?;
+                }
                 writeln!(stdout, "state={}", run.state).map_err(|error| error.to_string())?;
                 writeln!(stdout, "last_event={}", run.last_event_kind)
                     .map_err(|error| error.to_string())?;
@@ -193,8 +235,16 @@ fn handle_run<W: Write>(
                 for run in runs {
                     writeln!(
                         stdout,
-                        "{}\t{}\t{}\t{}\t{}",
-                        run.run_id, run.state, run.task_id, run.workflow, run.adapter
+                        "{}\t{}\t{}\t{}\t{}\t{}",
+                        run.run_id,
+                        run.state,
+                        run.task_id,
+                        run.workflow,
+                        run.adapter,
+                        run.persona_id
+                            .as_deref()
+                            .or(run.profile_id.as_deref())
+                            .unwrap_or("n/a")
                     )
                     .map_err(|error| error.to_string())?;
                 }
@@ -291,9 +341,9 @@ fn handle_run<W: Write>(
             )
         }
         "integrate" => {
-            let run_id = args.pop_front().ok_or_else(|| {
-                "usage: swb run integrate <RUN_ID> [--message TEXT]".to_string()
-            })?;
+            let run_id = args
+                .pop_front()
+                .ok_or_else(|| "usage: swb run integrate <RUN_ID> [--message TEXT]".to_string())?;
             let mut message = None;
             let mut output_json = false;
             while let Some(flag) = args.pop_front() {
@@ -341,8 +391,7 @@ fn handle_run<W: Write>(
                     }),
                 )?;
             } else {
-                writeln!(stdout, "run_id={}", updated.run_id)
-                    .map_err(|error| error.to_string())?;
+                writeln!(stdout, "run_id={}", updated.run_id).map_err(|error| error.to_string())?;
                 writeln!(stdout, "state={}", updated.state).map_err(|error| error.to_string())?;
                 writeln!(stdout, "workspace={}", integration.workspace_root.display())
                     .map_err(|error| error.to_string())?;
@@ -354,6 +403,312 @@ fn handle_run<W: Write>(
             Ok(0)
         }
         other => Err(format!("unknown run subcommand: {other}")),
+    }
+}
+
+fn handle_profile<W: Write>(
+    root: PathBuf,
+    mut args: VecDeque<String>,
+    stdout: &mut W,
+) -> Result<i32, String> {
+    let Some(subcommand) = args.pop_front() else {
+        return Err("profile requires a subcommand: list | show | save".to_string());
+    };
+
+    match subcommand.as_str() {
+        "list" => {
+            let output_json = take_bool_flag(&mut args, "--json");
+            if let Some(flag) = args.front() {
+                return Err(format!("unknown flag for profile list: {flag}"));
+            }
+            let profiles = list_profiles_from_root(&root).map_err(|error| error.to_string())?;
+            if output_json {
+                write_json(stdout, &json!({ "profiles": profiles }))?;
+            } else {
+                for profile in profiles {
+                    writeln!(
+                        stdout,
+                        "{}\t{}\tworkflow={}\tadapter={}\tgstack={}",
+                        profile.id,
+                        profile.display_name,
+                        profile.workflow.as_deref().unwrap_or("default"),
+                        profile.adapter.as_deref().unwrap_or("workflow_default"),
+                        profile.gstack_id
+                    )
+                    .map_err(|error| error.to_string())?;
+                }
+            }
+            Ok(0)
+        }
+        "show" => {
+            let profile_id = args
+                .pop_front()
+                .ok_or_else(|| "usage: swb profile show <PROFILE_ID> [--json]".to_string())?;
+            let output_json = take_bool_flag(&mut args, "--json");
+            if let Some(flag) = args.front() {
+                return Err(format!("unknown flag for profile show: {flag}"));
+            }
+            let profile =
+                get_profile_from_root(&root, &profile_id).map_err(|error| error.to_string())?;
+            if output_json {
+                write_json(stdout, &json!({ "profile": profile }))?;
+            } else {
+                writeln!(stdout, "id={}", profile.id).map_err(|error| error.to_string())?;
+                writeln!(stdout, "display_name={}", profile.display_name)
+                    .map_err(|error| error.to_string())?;
+                writeln!(
+                    stdout,
+                    "workflow={}",
+                    profile.workflow.as_deref().unwrap_or("default")
+                )
+                .map_err(|error| error.to_string())?;
+                writeln!(
+                    stdout,
+                    "adapter={}",
+                    profile.adapter.as_deref().unwrap_or("workflow_default")
+                )
+                .map_err(|error| error.to_string())?;
+                writeln!(stdout, "gstack_id={}", profile.gstack_id)
+                    .map_err(|error| error.to_string())?;
+                if !profile.description.trim().is_empty() {
+                    writeln!(stdout, "description={}", profile.description)
+                        .map_err(|error| error.to_string())?;
+                }
+                writeln!(stdout).map_err(|error| error.to_string())?;
+                writeln!(stdout, "{}", profile.instructions_markdown)
+                    .map_err(|error| error.to_string())?;
+            }
+            Ok(0)
+        }
+        "save" => {
+            let profile_id = args
+                .pop_front()
+                .ok_or_else(|| "usage: swb profile save <PROFILE_ID> --display-name TEXT [--description TEXT] [--workflow NAME] [--adapter NAME] [--gstack-id ID] [--instructions TEXT] [--json]".to_string())?;
+            let mut display_name = None;
+            let mut description = String::new();
+            let mut workflow = None;
+            let mut adapter = None;
+            let mut gstack_id = None;
+            let mut instructions_markdown = String::new();
+            let mut output_json = false;
+
+            while let Some(flag) = args.pop_front() {
+                match flag.as_str() {
+                    "--display-name" => {
+                        display_name = Some(require_flag_value(&mut args, "--display-name")?)
+                    }
+                    "--description" => {
+                        description = require_flag_value(&mut args, "--description")?
+                    }
+                    "--workflow" => workflow = Some(require_flag_value(&mut args, "--workflow")?),
+                    "--adapter" => adapter = Some(require_flag_value(&mut args, "--adapter")?),
+                    "--gstack-id" => {
+                        gstack_id = Some(require_flag_value(&mut args, "--gstack-id")?)
+                    }
+                    "--instructions" => {
+                        instructions_markdown = require_flag_value(&mut args, "--instructions")?
+                    }
+                    "--json" => output_json = true,
+                    other => return Err(format!("unknown flag for profile save: {other}")),
+                }
+            }
+
+            let saved = save_profile_to_root(
+                &root,
+                &ProfileDraft {
+                    id: profile_id,
+                    display_name: display_name
+                        .ok_or_else(|| "--display-name is required for profile save".to_string())?,
+                    description,
+                    workflow,
+                    adapter,
+                    gstack_id,
+                    instructions_markdown,
+                },
+            )
+            .map_err(|error| error.to_string())?;
+
+            if output_json {
+                write_json(stdout, &json!({ "profile": saved }))?;
+            } else {
+                writeln!(
+                    stdout,
+                    "saved\tid={}\tpath={}\tworkflow={}\tadapter={}",
+                    saved.id,
+                    saved.file_path,
+                    saved.workflow.as_deref().unwrap_or("default"),
+                    saved.adapter.as_deref().unwrap_or("workflow_default")
+                )
+                .map_err(|error| error.to_string())?;
+            }
+            Ok(0)
+        }
+        other => Err(format!("unknown profile subcommand: {other}")),
+    }
+}
+
+fn handle_persona<W: Write>(
+    root: PathBuf,
+    mut args: VecDeque<String>,
+    stdout: &mut W,
+) -> Result<i32, String> {
+    let Some(subcommand) = args.pop_front() else {
+        return Err("persona requires a subcommand: list | show | save".to_string());
+    };
+
+    match subcommand.as_str() {
+        "list" => {
+            let mut ingress = None;
+            let mut output_json = false;
+            while let Some(flag) = args.pop_front() {
+                match flag.as_str() {
+                    "--ingress" => ingress = Some(require_flag_value(&mut args, "--ingress")?),
+                    "--json" => output_json = true,
+                    other => return Err(format!("unknown flag for persona list: {other}")),
+                }
+            }
+            let personas = list_personas_from_root(&root, ingress.as_deref())
+                .map_err(|error| error.to_string())?;
+            if output_json {
+                write_json(stdout, &json!({ "personas": personas }))?;
+            } else {
+                for persona in personas {
+                    writeln!(
+                        stdout,
+                        "{}\t{}\tingress={}\tdefault_profile={}\tworkflow={}\tadapter={}",
+                        persona.id,
+                        persona.display_name,
+                        persona.ingress.as_deref().unwrap_or("any"),
+                        persona.default_profile,
+                        persona.default_workflow.as_deref().unwrap_or("default"),
+                        persona
+                            .default_adapter
+                            .as_deref()
+                            .unwrap_or("workflow_default")
+                    )
+                    .map_err(|error| error.to_string())?;
+                }
+            }
+            Ok(0)
+        }
+        "show" => {
+            let persona_id = args.pop_front().ok_or_else(|| {
+                "usage: swb persona show <PERSONA_ID> [--ingress NAME] [--json]".to_string()
+            })?;
+            let mut ingress = None;
+            let mut output_json = false;
+            while let Some(flag) = args.pop_front() {
+                match flag.as_str() {
+                    "--ingress" => ingress = Some(require_flag_value(&mut args, "--ingress")?),
+                    "--json" => output_json = true,
+                    other => return Err(format!("unknown flag for persona show: {other}")),
+                }
+            }
+            let persona = get_persona_from_root(&root, &persona_id, ingress.as_deref())
+                .map_err(|error| error.to_string())?;
+            if output_json {
+                write_json(stdout, &json!({ "persona": persona }))?;
+            } else {
+                writeln!(stdout, "id={}", persona.id).map_err(|error| error.to_string())?;
+                writeln!(stdout, "display_name={}", persona.display_name)
+                    .map_err(|error| error.to_string())?;
+                writeln!(
+                    stdout,
+                    "ingress={}",
+                    persona.ingress.as_deref().unwrap_or("any")
+                )
+                .map_err(|error| error.to_string())?;
+                writeln!(stdout, "default_profile={}", persona.default_profile)
+                    .map_err(|error| error.to_string())?;
+                writeln!(
+                    stdout,
+                    "default_workflow={}",
+                    persona.default_workflow.as_deref().unwrap_or("default")
+                )
+                .map_err(|error| error.to_string())?;
+                writeln!(
+                    stdout,
+                    "default_adapter={}",
+                    persona
+                        .default_adapter
+                        .as_deref()
+                        .unwrap_or("workflow_default")
+                )
+                .map_err(|error| error.to_string())?;
+                if !persona.description.trim().is_empty() {
+                    writeln!(stdout, "description={}", persona.description)
+                        .map_err(|error| error.to_string())?;
+                }
+                writeln!(stdout, "path={}", persona.file_path)
+                    .map_err(|error| error.to_string())?;
+            }
+            Ok(0)
+        }
+        "save" => {
+            let persona_id = args
+                .pop_front()
+                .ok_or_else(|| "usage: swb persona save <PERSONA_ID> --display-name TEXT --default-profile ID [--description TEXT] [--ingress NAME] [--workflow NAME] [--adapter NAME] [--json]".to_string())?;
+            let mut display_name = None;
+            let mut default_profile = None;
+            let mut description = String::new();
+            let mut ingress = None;
+            let mut default_workflow = None;
+            let mut default_adapter = None;
+            let mut output_json = false;
+            while let Some(flag) = args.pop_front() {
+                match flag.as_str() {
+                    "--display-name" => {
+                        display_name = Some(require_flag_value(&mut args, "--display-name")?)
+                    }
+                    "--default-profile" => {
+                        default_profile = Some(require_flag_value(&mut args, "--default-profile")?)
+                    }
+                    "--description" => {
+                        description = require_flag_value(&mut args, "--description")?
+                    }
+                    "--ingress" => ingress = Some(require_flag_value(&mut args, "--ingress")?),
+                    "--workflow" => {
+                        default_workflow = Some(require_flag_value(&mut args, "--workflow")?)
+                    }
+                    "--adapter" => {
+                        default_adapter = Some(require_flag_value(&mut args, "--adapter")?)
+                    }
+                    "--json" => output_json = true,
+                    other => return Err(format!("unknown flag for persona save: {other}")),
+                }
+            }
+            let saved = save_persona_to_root(
+                &root,
+                &PersonaDraft {
+                    id: persona_id,
+                    display_name: display_name
+                        .ok_or_else(|| "--display-name is required for persona save".to_string())?,
+                    description,
+                    ingress,
+                    default_profile: default_profile.ok_or_else(|| {
+                        "--default-profile is required for persona save".to_string()
+                    })?,
+                    default_workflow,
+                    default_adapter,
+                },
+            )
+            .map_err(|error| error.to_string())?;
+            if output_json {
+                write_json(stdout, &json!({ "persona": saved }))?;
+            } else {
+                writeln!(
+                    stdout,
+                    "saved\tid={}\tpath={}\tingress={}\tdefault_profile={}",
+                    saved.id,
+                    saved.file_path,
+                    saved.ingress.as_deref().unwrap_or("any"),
+                    saved.default_profile
+                )
+                .map_err(|error| error.to_string())?;
+            }
+            Ok(0)
+        }
+        other => Err(format!("unknown persona subcommand: {other}")),
     }
 }
 
@@ -536,6 +891,119 @@ fn handle_receiver<W: Write>(
             Ok(0)
         }
         other => Err(format!("unknown receiver subcommand: {other}")),
+    }
+}
+
+fn handle_ingress<W: Write>(
+    root: PathBuf,
+    mut args: VecDeque<String>,
+    stdout: &mut W,
+) -> Result<i32, String> {
+    let Some(subcommand) = args.pop_front() else {
+        return Err("ingress requires a subcommand: serve".to_string());
+    };
+
+    match subcommand.as_str() {
+        "serve" => {
+            let mut listen_addr = ServerOptions::default().listen_addr;
+            while let Some(flag) = args.pop_front() {
+                match flag.as_str() {
+                    "--listen" => listen_addr = require_flag_value(&mut args, "--listen")?,
+                    other => return Err(format!("unknown flag for ingress serve: {other}")),
+                }
+            }
+            writeln!(stdout, "listening={listen_addr}").map_err(|error| error.to_string())?;
+            let runtime = tokio::runtime::Runtime::new().map_err(|error| error.to_string())?;
+            runtime
+                .block_on(serve_ingress(&root, ServerOptions { listen_addr }))
+                .map_err(|error| error.to_string())?;
+            Ok(0)
+        }
+        other => Err(format!("unknown ingress subcommand: {other}")),
+    }
+}
+
+fn handle_outbound<W: Write>(
+    root: PathBuf,
+    mut args: VecDeque<String>,
+    stdout: &mut W,
+) -> Result<i32, String> {
+    let Some(subcommand) = args.pop_front() else {
+        return Err("outbound requires a subcommand: list | mark".to_string());
+    };
+    let state = SqliteStateStore::open(&root).map_err(|error| error.to_string())?;
+
+    match subcommand.as_str() {
+        "list" => {
+            let mut system = None;
+            let mut status = None;
+            let mut limit = 100_usize;
+            let mut output_json = false;
+            while let Some(flag) = args.pop_front() {
+                match flag.as_str() {
+                    "--system" => system = Some(require_flag_value(&mut args, "--system")?),
+                    "--status" => status = Some(require_flag_value(&mut args, "--status")?),
+                    "--limit" => {
+                        let value = require_flag_value(&mut args, "--limit")?;
+                        limit = value
+                            .parse::<usize>()
+                            .map_err(|_| format!("invalid value for --limit: {value}"))?;
+                    }
+                    "--json" => output_json = true,
+                    other => return Err(format!("unknown flag for outbound list: {other}")),
+                }
+            }
+            let items = state
+                .list_outbound_updates(system.as_deref(), status.as_deref(), limit)
+                .map_err(|error| error.to_string())?;
+            if output_json {
+                write_json(stdout, &json!({ "updates": items }))?;
+            } else {
+                for item in items {
+                    writeln!(
+                        stdout,
+                        "{}\t{}\t{}\t{}\trun={}\tbody={}",
+                        item.id,
+                        item.system,
+                        item.status,
+                        item.target_kind,
+                        item.run_id.as_deref().unwrap_or("n/a"),
+                        compact_text(&item.body)
+                    )
+                    .map_err(|error| error.to_string())?;
+                }
+            }
+            Ok(0)
+        }
+        "mark" => {
+            let id = args
+                .pop_front()
+                .ok_or_else(|| "usage: swb outbound mark <ID> <STATUS> [--json]".to_string())?
+                .parse::<i64>()
+                .map_err(|_| "invalid outbound update id".to_string())?;
+            let status = args
+                .pop_front()
+                .ok_or_else(|| "usage: swb outbound mark <ID> <STATUS> [--json]".to_string())?;
+            let output_json = take_bool_flag(&mut args, "--json");
+            if let Some(flag) = args.front() {
+                return Err(format!("unknown flag for outbound mark: {flag}"));
+            }
+            let updated = state
+                .mark_outbound_update_status(id, &status)
+                .map_err(|error| error.to_string())?;
+            if output_json {
+                write_json(stdout, &json!({ "update": updated }))?;
+            } else {
+                writeln!(
+                    stdout,
+                    "id={}\tstatus={}\tsystem={}\ttarget={}",
+                    updated.id, updated.status, updated.system, updated.target_id
+                )
+                .map_err(|error| error.to_string())?;
+            }
+            Ok(0)
+        }
+        other => Err(format!("unknown outbound subcommand: {other}")),
     }
 }
 
@@ -749,6 +1217,18 @@ fn format_run_log(record: &RunLogRecord) -> String {
                 fields.push(format!("task_id={}", payload.task_id));
                 fields.push(format!("workflow={}", payload.workflow));
                 fields.push(format!("adapter={}", payload.adapter));
+                if let Some(persona_id) = payload.persona_id {
+                    fields.push(format!("persona_id={persona_id}"));
+                }
+                if let Some(profile_id) = payload.profile_id {
+                    fields.push(format!("profile_id={profile_id}"));
+                }
+                if let Some(gstack_id) = payload.gstack_id {
+                    fields.push(format!("gstack_id={gstack_id}"));
+                }
+                if let Some(gstack_fingerprint) = payload.gstack_fingerprint {
+                    fields.push(format!("gstack_fingerprint={gstack_fingerprint}"));
+                }
                 if let Some(prompt) = payload.prompt {
                     push_text_field(&mut fields, "prompt", &prompt);
                 }
@@ -909,20 +1389,47 @@ fn write_usage<W: Write>(writer: &mut W) -> std::io::Result<()> {
     writeln!(writer, "Stackbench CLI")?;
     writeln!(
         writer,
-        "  swb run start <TASK_ID> [--workflow NAME] [--adapter NAME] [--prompt TEXT] [--json]"
+        "  swb run start <TASK_ID> [--persona ID] [--profile ID|--worker-type ID] [--workflow NAME] [--adapter NAME] [--prompt TEXT] [--json]"
     )?;
     writeln!(writer, "  swb run status <RUN_ID> [--json]")?;
     writeln!(writer, "  swb run list [--json]")?;
     writeln!(writer, "  swb run logs <RUN_ID> [--limit N] [--json]")?;
-    writeln!(writer, "  swb run approve <RUN_ID> [--reason TEXT] [--json]")?;
+    writeln!(
+        writer,
+        "  swb run approve <RUN_ID> [--reason TEXT] [--json]"
+    )?;
     writeln!(writer, "  swb run reject <RUN_ID> [--reason TEXT] [--json]")?;
-    writeln!(writer, "  swb run integrate <RUN_ID> [--message TEXT] [--json]")?;
+    writeln!(
+        writer,
+        "  swb run integrate <RUN_ID> [--message TEXT] [--json]"
+    )?;
+    writeln!(writer, "  swb profile list [--json]")?;
+    writeln!(writer, "  swb profile show <PROFILE_ID> [--json]")?;
+    writeln!(
+        writer,
+        "  swb profile save <PROFILE_ID> --display-name TEXT [--description TEXT] [--workflow NAME] [--adapter NAME] [--gstack-id ID] [--instructions TEXT] [--json]"
+    )?;
+    writeln!(writer, "  swb persona list [--ingress NAME] [--json]")?;
+    writeln!(
+        writer,
+        "  swb persona show <PERSONA_ID> [--ingress NAME] [--json]"
+    )?;
+    writeln!(
+        writer,
+        "  swb persona save <PERSONA_ID> --display-name TEXT --default-profile ID [--description TEXT] [--ingress NAME] [--workflow NAME] [--adapter NAME] [--json]"
+    )?;
     writeln!(writer, "  swb launcher run-once [RUN_ID] [--json]")?;
     writeln!(
         writer,
         "  swb launcher watch [RUN_ID] [--interval-ms N] [--max-cycles N] [--json]"
     )?;
     writeln!(writer, "  swb receiver drain")?;
+    writeln!(writer, "  swb ingress serve [--listen ADDR]")?;
+    writeln!(
+        writer,
+        "  swb outbound list [--system NAME] [--status STATUS] [--limit N] [--json]"
+    )?;
+    writeln!(writer, "  swb outbound mark <ID> <STATUS> [--json]")?;
     writeln!(writer, "  swb adapter list [--json]")?;
     writeln!(writer, "  swb adapter doctor [--json]")?;
     writeln!(writer, "  swb adapter auth status [ADAPTER] [--json]")?;
@@ -951,6 +1458,7 @@ mod tests {
     use std::sync::atomic::{AtomicU64, Ordering};
 
     use serde_json::Value;
+    use swb_state::SqliteStateStore;
 
     use super::run_cli;
 
@@ -990,6 +1498,203 @@ mod tests {
         assert_eq!(status_code, 0);
         assert!(status_stdout.contains("state=queued"));
         assert!(status_stdout.contains("drained=1"));
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn profile_commands_and_run_start_with_profile_work() {
+        let root = unique_temp_root();
+        fs::create_dir_all(&root).unwrap();
+        fs::write(
+            root.join("swb.toml"),
+            r#"
+                [[adapters]]
+                name = "codex"
+                command = "codex"
+                auth_strategy = "codex_login_status"
+
+                [[workflows]]
+                name = "default"
+                adapters = ["codex"]
+            "#,
+        )
+        .unwrap();
+
+        let (save_code, save_stdout, save_stderr) = run(
+            &root,
+            &[
+                "profile",
+                "save",
+                "eng-review",
+                "--display-name",
+                "Engineering Review",
+                "--workflow",
+                "default",
+                "--adapter",
+                "codex",
+                "--instructions",
+                "Review checklist:\n- find bugs\n- call out regressions",
+            ],
+        );
+        assert_eq!(save_code, 0);
+        assert!(save_stderr.is_empty());
+        assert!(save_stdout.contains("saved"));
+
+        let (list_code, list_stdout, list_stderr) = run(&root, &["profile", "list", "--json"]);
+        assert_eq!(list_code, 0);
+        assert!(list_stderr.is_empty());
+        let list_json: Value = serde_json::from_str(&list_stdout).unwrap();
+        assert_eq!(list_json["profiles"][0]["id"], "eng-review");
+
+        let (start_code, start_stdout, start_stderr) = run(
+            &root,
+            &[
+                "run",
+                "start",
+                "TASK-PROFILE",
+                "--profile",
+                "eng-review",
+                "--prompt",
+                "Review the current branch before merge",
+                "--json",
+            ],
+        );
+        assert_eq!(start_code, 0);
+        assert!(start_stderr.is_empty());
+        let start_json: Value = serde_json::from_str(&start_stdout).unwrap();
+        assert_eq!(start_json["profile_id"], "eng-review");
+        assert_eq!(start_json["gstack_id"], "profile.eng-review");
+        assert!(start_json["gstack_fingerprint"]
+            .as_str()
+            .unwrap()
+            .starts_with("sha256:"));
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn persona_commands_and_run_start_with_persona_work() {
+        let root = unique_temp_root();
+        fs::create_dir_all(&root).unwrap();
+        fs::write(
+            root.join("swb.toml"),
+            r#"
+                [[adapters]]
+                name = "codex"
+                command = "codex"
+                auth_strategy = "codex_login_status"
+
+                [[workflows]]
+                name = "default"
+                adapters = ["codex"]
+            "#,
+        )
+        .unwrap();
+
+        let (save_profile_code, _, save_profile_stderr) = run(
+            &root,
+            &[
+                "profile",
+                "save",
+                "eng-review",
+                "--display-name",
+                "Engineering Review",
+                "--workflow",
+                "default",
+                "--adapter",
+                "codex",
+                "--instructions",
+                "Review checklist:\n- find bugs\n- call out regressions",
+            ],
+        );
+        assert_eq!(save_profile_code, 0);
+        assert!(save_profile_stderr.is_empty());
+
+        let (save_persona_code, save_persona_stdout, save_persona_stderr) = run(
+            &root,
+            &[
+                "persona",
+                "save",
+                "slack-review",
+                "--display-name",
+                "Slack Review",
+                "--default-profile",
+                "eng-review",
+                "--ingress",
+                "slack",
+            ],
+        );
+        assert_eq!(save_persona_code, 0);
+        assert!(save_persona_stderr.is_empty());
+        assert!(save_persona_stdout.contains("saved"));
+
+        let (list_code, list_stdout, list_stderr) =
+            run(&root, &["persona", "list", "--ingress", "slack", "--json"]);
+        assert_eq!(list_code, 0);
+        assert!(list_stderr.is_empty());
+        let list_json: Value = serde_json::from_str(&list_stdout).unwrap();
+        assert_eq!(list_json["personas"][0]["id"], "slack-review");
+
+        let (start_code, start_stdout, start_stderr) = run(
+            &root,
+            &[
+                "run",
+                "start",
+                "TASK-PERSONA",
+                "--persona",
+                "slack-review",
+                "--prompt",
+                "Review the Slack-requested change",
+                "--json",
+            ],
+        );
+        assert_eq!(start_code, 0);
+        assert!(start_stderr.is_empty());
+        let start_json: Value = serde_json::from_str(&start_stdout).unwrap();
+        assert_eq!(start_json["persona_id"], "slack-review");
+        assert_eq!(start_json["profile_id"], "eng-review");
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn outbound_list_and_mark_work() {
+        let root = unique_temp_root();
+        fs::create_dir_all(&root).unwrap();
+
+        let state = SqliteStateStore::open(&root).unwrap();
+        let queued = state
+            .queue_outbound_update(&swb_core::OutboundUpdateDraft {
+                system: "slack".to_string(),
+                target_kind: "response_url".to_string(),
+                target_id: "https://example.test/slack".to_string(),
+                task_id: Some("TASK-OUTBOUND".to_string()),
+                run_id: Some("run-outbound".to_string()),
+                body: "Queued run run-outbound".to_string(),
+                metadata: serde_json::json!({ "kind": "queued" }),
+            })
+            .unwrap();
+
+        let (list_code, list_stdout, list_stderr) = run(
+            &root,
+            &[
+                "outbound", "list", "--system", "slack", "--status", "pending", "--json",
+            ],
+        );
+        assert_eq!(list_code, 0);
+        assert!(list_stderr.is_empty());
+        let list_json: Value = serde_json::from_str(&list_stdout).unwrap();
+        assert_eq!(list_json["updates"][0]["id"], queued.id);
+
+        let (mark_code, mark_stdout, mark_stderr) = run(
+            &root,
+            &["outbound", "mark", &queued.id.to_string(), "sent", "--json"],
+        );
+        assert_eq!(mark_code, 0);
+        assert!(mark_stderr.is_empty());
+        let mark_json: Value = serde_json::from_str(&mark_stdout).unwrap();
+        assert_eq!(mark_json["update"]["status"], "sent");
 
         fs::remove_dir_all(root).unwrap();
     }
@@ -1162,14 +1867,24 @@ mod tests {
 
         let (integrate_code, integrate_stdout, integrate_stderr) = run(
             &root,
-            &["run", "integrate", &run_id, "--message", "ship it", "--json"],
+            &[
+                "run",
+                "integrate",
+                &run_id,
+                "--message",
+                "ship it",
+                "--json",
+            ],
         );
         assert_eq!(integrate_code, 0);
         assert!(integrate_stderr.is_empty());
         let integrate_json: Value = serde_json::from_str(&integrate_stdout).unwrap();
         assert_eq!(integrate_json["run"]["run_id"], run_id);
         assert_eq!(integrate_json["run"]["state"], "integrated");
-        assert_eq!(integrate_json["integration"]["change_id"], "change-test-456");
+        assert_eq!(
+            integrate_json["integration"]["change_id"],
+            "change-test-456"
+        );
         assert_eq!(
             integrate_json["integration"]["workspace_root"]
                 .as_str()

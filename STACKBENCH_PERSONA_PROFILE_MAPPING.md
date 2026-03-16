@@ -12,6 +12,7 @@ Separate human-facing invocation names from machine-executable runtime profiles.
 - ingress-facing alias used by a human or external system
 - examples: `eng-review`, `qa`, `review`, `ship`
 - may carry defaults for profile, adapter, tools, or approval policy
+- in the current repo, personas are repo-local TOML files under `swb/personas/<ingress>/`
 
 ### Profile
 - machine-readable runtime definition
@@ -59,6 +60,7 @@ requires_browser = false
 swb/
   personas/
     slack/
+    linear/
   profiles/
   prompts/
     roles/
@@ -70,14 +72,20 @@ swb/
 - slash command chooses persona
 - persona selects default profile
 - Slack request payload becomes task input
+- current repo supports `POST /ingress/slack/command` and `POST /ingress/slack/action`
+- current repo includes `slack-review` and `slack-deploy` personas under `swb/personas/slack/`
 
 ### Desktop
 - operator selects profile directly or through persona presets
+- the current desktop shell already surfaces profile selection and editing
 - desktop may hide persona if it is not useful outside ingress contexts
+- future desktop work can surface ingress refs and outbound updates using the same canonical IDs
 
 ### CLI
 - operator may specify `--profile`
-- optional `--persona` is allowed when ingress parity matters
+- optional `--persona` is implemented when ingress parity matters
+- `swb persona list|show|save` manages repo-local personas
+- `swb run start --persona <PERSONA_ID>` resolves the same mapping path ingress uses
 
 ## Runtime Mapping Rules
 - profile chooses adapter runtime
@@ -91,4 +99,13 @@ The external docs correctly separate:
 - invocation alias
 - runtime behavior
 
-The current repo has the runtime and config boundaries needed for a persona/profile split, but it does not yet expose that split through the CLI or desktop shell. Stackbench should adopt the persona/profile model without collapsing it into adapter names or workflow shortcuts.
+The current repo now exposes both sides of this split:
+- profiles are markdown-backed worker types under `swb/profiles`
+- personas are TOML ingress aliases under `swb/personas/`
+- CLI dispatch supports both `--profile` and `--persona`
+- Slack and Linear ingress resolve personas into the same profile and gstack model
+
+What remains is richer presentation:
+- persona presets in the desktop shell
+- clearer persona/profile/gstack preview
+- cross-ingress lease fencing once multiple remote request surfaces are active

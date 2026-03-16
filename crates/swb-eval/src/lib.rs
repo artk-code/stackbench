@@ -1,8 +1,8 @@
 use std::path::Path;
 use std::process::Command;
 
-use thiserror::Error;
 use swb_config::EvaluatorConfig;
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EvaluationCommandResult {

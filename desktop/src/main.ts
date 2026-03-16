@@ -224,19 +224,67 @@ app.whenReady().then(() => {
     return currentDesktopState();
   });
   ipcMain.handle("swb:run-list", async () => runSwbJson(["run", "list"]));
-  ipcMain.handle("swb:run-start", async (_, payload: { taskId: string; workflow?: string; adapter?: string; prompt?: string }) => {
-    const args = ["run", "start", payload.taskId];
-    if (payload.workflow) {
-      args.push("--workflow", payload.workflow);
-    }
-    if (payload.adapter) {
-      args.push("--adapter", payload.adapter);
-    }
-    if (payload.prompt) {
-      args.push("--prompt", payload.prompt);
-    }
-    return runSwbJson(args);
-  });
+  ipcMain.handle(
+    "swb:run-start",
+    async (
+      _,
+      payload: { taskId: string; workflow?: string; adapter?: string; profile?: string; prompt?: string },
+    ) => {
+      const args = ["run", "start", payload.taskId];
+      if (payload.profile) {
+        args.push("--profile", payload.profile);
+      }
+      if (payload.workflow) {
+        args.push("--workflow", payload.workflow);
+      }
+      if (payload.adapter) {
+        args.push("--adapter", payload.adapter);
+      }
+      if (payload.prompt) {
+        args.push("--prompt", payload.prompt);
+      }
+      return runSwbJson(args);
+    },
+  );
+  ipcMain.handle("swb:profile-list", async () => runSwbJson(["profile", "list"]));
+  ipcMain.handle(
+    "swb:profile-save",
+    async (
+      _,
+      payload: {
+        id: string;
+        displayName: string;
+        description?: string;
+        workflow?: string;
+        adapter?: string;
+        gstackId?: string;
+        instructionsMarkdown?: string;
+      },
+    ) => {
+      const args = [
+        "profile",
+        "save",
+        payload.id,
+        "--display-name",
+        payload.displayName,
+        "--instructions",
+        payload.instructionsMarkdown ?? "",
+      ];
+      if (payload.description) {
+        args.push("--description", payload.description);
+      }
+      if (payload.workflow) {
+        args.push("--workflow", payload.workflow);
+      }
+      if (payload.adapter) {
+        args.push("--adapter", payload.adapter);
+      }
+      if (payload.gstackId) {
+        args.push("--gstack-id", payload.gstackId);
+      }
+      return runSwbJson(args);
+    },
+  );
   ipcMain.handle("swb:run-logs", async (_, payload: { runId: string; limit: number }) =>
     runSwbJson(["run", "logs", payload.runId, "--limit", String(payload.limit)]),
   );

@@ -30,9 +30,13 @@ The bundle did not define enough runtime contract to implement those safely. Sta
 4. Persona and profile mapping
    - separate ingress aliases from machine-executable runtime profiles
    - document: `STACKBENCH_PERSONA_PROFILE_MAPPING.md`
+   - current executable slice: `swb persona *`, `swb run start --persona`, and repo-local persona files under `swb/personas/`
 5. Evaluation and lease runtime
    - deterministic evaluation contract and network-safe lease fencing model
    - document: `STACKBENCH_EVAL_LEASE_RUNTIME.md`
+6. External ingress
+   - Slack and Linear request surfaces over the same queue path
+   - document: `STACKBENCH_INGRESS_SPEC.md`
 
 ## Comparison To Current Repo
 What already exists in the current repo:
@@ -40,13 +44,17 @@ What already exists in the current repo:
 - adapter auth status and login flow
 - local evaluation, approval, and `jj` integration
 - desktop shell over machine-readable CLI contracts
+- markdown-backed worker types with minimal gstack resolution and fingerprinting
+- persona resolution and initial Slack/Linear ingress
 - the retained `jj` helper flow
 
 What is still intentionally incomplete:
-- first-class `gstack`
-- persona and profile mapping model
+- richer multi-layer `gstack` resolution and preview
+- persona presets in the desktop shell
 - broader multi-adapter auth parity
-- Slack adapter contract
+- outbound Slack and Linear delivery
+- Slack approval actions and Linear sync
+- lease fencing across multiple ingress surfaces
 - deterministic evaluation pack and scoring contract
 - richer packaged desktop behavior around bundled binaries and login remediation
 

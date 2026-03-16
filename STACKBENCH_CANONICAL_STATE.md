@@ -19,6 +19,10 @@ Stackbench owns canonical state for:
 
 External systems may request work or receive status, but they do not become the source of execution truth.
 
+Ingress metadata may be stored alongside canonical state:
+- external references back to Slack, Linear, or other request surfaces
+- queued outbound updates for status delivery
+
 ## Canonical IDs
 ### `task_id`
 - stable task identity across ingress surfaces
@@ -51,6 +55,12 @@ External systems may request work or receive status, but they do not become the 
 ### `workspace_id`
 - derived as `<run_id>/<step_id>` for workspace isolation and artifact lookup
 
+### `external_ref_id`
+- natural identity defined as `<system>/<entity_kind>/<external_id>`
+
+### `outbound_update_id`
+- monotonic local identity for one queued outbound status update
+
 ## Canonical Records
 ### Task
 - `task_id`
@@ -69,6 +79,7 @@ External systems may request work or receive status, but they do not become the 
 - `profile_id?`
 - `persona_id?`
 - `gstack_id?`
+- `gstack_fingerprint?`
 - `state`
 - `created_at`
 - `updated_at`
@@ -125,6 +136,32 @@ External systems may request work or receive status, but they do not become the 
 - `payload`
 - `applied_at`
 
+### External Ref
+- `system`
+- `entity_kind`
+- `external_id`
+- `task_id?`
+- `run_id?`
+- `persona_id?`
+- `title?`
+- `url?`
+- `metadata`
+- `created_at`
+- `updated_at`
+
+### Outbound Update
+- `outbound_update_id`
+- `system`
+- `target_kind`
+- `target_id`
+- `task_id?`
+- `run_id?`
+- `status`
+- `body`
+- `metadata`
+- `created_at`
+- `updated_at`
+
 ## Lifecycle States
 ### Task state
 - `draft`
@@ -164,6 +201,7 @@ External systems may request work or receive status, but they do not become the 
 - Integration is valid only from `approved`.
 - Evaluation is required before `awaiting_review`.
 - Task-level lease state and run-level lifecycle are related but not interchangeable.
+- External refs and outbound updates are additive metadata and must not be used as a second lifecycle.
 
 ## Minimal Accepted Event Kinds
 - `run_requested`
@@ -189,6 +227,8 @@ The current repo already carries the current state model in executable form:
 - canonical identifiers and event kinds in `swb-core`
 - durable ingest ordering in `swb-queue-sqlite`
 - replay-safe projection and timeline persistence in `swb-state`
+- additive external reference and outbound update storage in `swb-state`
 - evaluation and integration progression across `swb-launcher`, `swb-eval`, and `swb-jj`
+- recorded persona, worker-type, and gstack metadata on queued runs
 
 The next repo cutover should preserve these boundaries even when internal `swb` names are eventually renamed to `stackbench`.

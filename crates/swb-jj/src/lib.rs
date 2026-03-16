@@ -3,9 +3,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use thiserror::Error;
 use swb_config::SwbConfig;
 use swb_core::SwbPaths;
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JjDoctorReport {
@@ -47,10 +47,7 @@ pub fn doctor(root: impl AsRef<Path>, config: &SwbConfig) -> JjDoctorReport {
 }
 
 pub fn workspace_root_for_run(root: impl AsRef<Path>, run_id: &str) -> PathBuf {
-    SwbPaths::new(root)
-        .data_dir
-        .join("workspaces")
-        .join(run_id)
+    SwbPaths::new(root).data_dir.join("workspaces").join(run_id)
 }
 
 pub fn ensure_run_workspace(

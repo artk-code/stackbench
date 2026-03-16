@@ -17,6 +17,7 @@ crates/
 desktop/
 docs/
 scripts/
+swb/
 README.md
 STACKBENCH_*.md
 STACKBENCH_CUTOVER_CHECKLIST.md
@@ -33,6 +34,7 @@ crates/
   swb-core/
   swb-launcher/
   swb-adapters/
+  swb-ingress-http/
   swb-queue-sqlite/
   swb-receiver/
   swb-state/
@@ -66,6 +68,13 @@ crates/
 - auth doctor and login flows
 - normalized adapter result handling
 
+### `swb-ingress-http`
+- local HTTP ingress for Slack and Linear
+- request verification
+- persona resolution over the existing config model
+- queue submission over the same canonical run request path
+- additive external ref and outbound update persistence
+
 ### `swb-queue-sqlite`
 - SQLite-backed durable ingest queue
 - enqueue, claim, ack, and replay primitives
@@ -92,6 +101,8 @@ crates/
 - `swb.toml` parsing
 - adapter registration
 - workflow and policy configuration
+- markdown-backed profile loading
+- gstack resolution and fingerprinting
 - profile, persona, and gstack lookup
 
 ## Desktop Package
@@ -136,6 +147,7 @@ scripts/
 - `swb-adapters` does not mutate canonical state directly.
 - `swb-queue-sqlite` stays provider-agnostic.
 - `swb-state` owns derived reads, not subprocess execution.
+- `swb-ingress-http` may persist additive ingress metadata but does not own canonical run progression.
 - `swb-jj` owns repository workspace mechanics, not run-state policy.
 - legacy browser and tmux orchestration code is intentionally absent from this repo shape.
 
@@ -152,6 +164,7 @@ Current config concerns:
 - evaluation commands
 - integration policy
 - workspace defaults
+- markdown-backed worker-type profiles
 - persona, profile, and gstack resolution
 
 ## Migration Posture

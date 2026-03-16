@@ -12,6 +12,11 @@ pub const SWB_CONFIG_FILE: &str = "swb.toml";
 pub const SWB_DATA_DIR: &str = ".swb";
 pub const SWB_QUEUE_DB_FILE: &str = "ingest.sqlite3";
 pub const SWB_STATE_DB_FILE: &str = "state.sqlite3";
+pub const SWB_ASSETS_DIR: &str = "swb";
+pub const SWB_PROFILES_DIR: &str = "profiles";
+pub const SWB_PERSONAS_DIR: &str = "personas";
+pub const SWB_PROMPTS_DIR: &str = "prompts";
+pub const SWB_RUNTIME_PROMPTS_DIR: &str = "runtime";
 
 static RUN_COUNTER: AtomicU64 = AtomicU64::new(1);
 
@@ -22,16 +27,28 @@ pub struct SwbPaths {
     pub data_dir: PathBuf,
     pub queue_db_path: PathBuf,
     pub state_db_path: PathBuf,
+    pub assets_dir: PathBuf,
+    pub profiles_dir: PathBuf,
+    pub personas_dir: PathBuf,
+    pub prompts_dir: PathBuf,
+    pub runtime_prompts_dir: PathBuf,
 }
 
 impl SwbPaths {
     pub fn new(root: impl AsRef<Path>) -> Self {
         let root = root.as_ref().to_path_buf();
         let data_dir = root.join(SWB_DATA_DIR);
+        let assets_dir = root.join(SWB_ASSETS_DIR);
+        let prompts_dir = assets_dir.join(SWB_PROMPTS_DIR);
         Self {
             config_path: root.join(SWB_CONFIG_FILE),
             queue_db_path: data_dir.join(SWB_QUEUE_DB_FILE),
             state_db_path: data_dir.join(SWB_STATE_DB_FILE),
+            assets_dir: assets_dir.clone(),
+            profiles_dir: assets_dir.join(SWB_PROFILES_DIR),
+            personas_dir: assets_dir.join(SWB_PERSONAS_DIR),
+            prompts_dir: prompts_dir.clone(),
+            runtime_prompts_dir: prompts_dir.join(SWB_RUNTIME_PROMPTS_DIR),
             data_dir,
             root,
         }
@@ -143,6 +160,10 @@ pub struct RunRequest {
     pub workflow: String,
     pub adapter: String,
     pub prompt: Option<String>,
+    pub profile_id: Option<String>,
+    pub persona_id: Option<String>,
+    pub gstack_id: Option<String>,
+    pub gstack_fingerprint: Option<String>,
 }
 
 impl RunRequest {
@@ -152,6 +173,19 @@ impl RunRequest {
         adapter: impl Into<String>,
         prompt: Option<String>,
     ) -> Self {
+        Self::with_gstack(task_id, workflow, adapter, prompt, None, None, None, None)
+    }
+
+    pub fn with_gstack(
+        task_id: impl Into<String>,
+        workflow: impl Into<String>,
+        adapter: impl Into<String>,
+        prompt: Option<String>,
+        profile_id: Option<String>,
+        persona_id: Option<String>,
+        gstack_id: Option<String>,
+        gstack_fingerprint: Option<String>,
+    ) -> Self {
         let task_id = task_id.into();
         Self {
             run_id: generate_run_id(&task_id),
@@ -159,6 +193,10 @@ impl RunRequest {
             workflow: workflow.into(),
             adapter: adapter.into(),
             prompt,
+            profile_id,
+            persona_id,
+            gstack_id,
+            gstack_fingerprint,
         }
     }
 }
@@ -170,6 +208,10 @@ pub struct RunRequestedPayload {
     pub workflow: String,
     pub adapter: String,
     pub prompt: Option<String>,
+    pub profile_id: Option<String>,
+    pub persona_id: Option<String>,
+    pub gstack_id: Option<String>,
+    pub gstack_fingerprint: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -207,6 +249,10 @@ impl IngestEnvelope {
                 workflow: request.workflow.clone(),
                 adapter: request.adapter.clone(),
                 prompt: request.prompt.clone(),
+                profile_id: request.profile_id.clone(),
+                persona_id: request.persona_id.clone(),
+                gstack_id: request.gstack_id.clone(),
+                gstack_fingerprint: request.gstack_fingerprint.clone(),
             }),
         }
     }
@@ -232,6 +278,10 @@ pub struct RunRecord {
     pub task_id: String,
     pub workflow: String,
     pub adapter: String,
+    pub profile_id: Option<String>,
+    pub persona_id: Option<String>,
+    pub gstack_id: Option<String>,
+    pub gstack_fingerprint: Option<String>,
     pub state: RunState,
     pub created_at: String,
     pub updated_at: String,
@@ -246,6 +296,64 @@ pub struct RunLogRecord {
     pub entry_id: i64,
     pub applied_at: String,
     pub envelope: IngestEnvelope,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExternalRefDraft {
+    pub system: String,
+    pub entity_kind: String,
+    pub external_id: String,
+    pub task_id: Option<String>,
+    pub run_id: Option<String>,
+    pub persona_id: Option<String>,
+    pub title: Option<String>,
+    pub url: Option<String>,
+    pub metadata: Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExternalRefRecord {
+    pub system: String,
+    pub entity_kind: String,
+    pub external_id: String,
+    pub task_id: Option<String>,
+    pub run_id: Option<String>,
+    pub persona_id: Option<String>,
+    pub title: Option<String>,
+    pub url: Option<String>,
+    pub metadata: Value,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OutboundUpdateDraft {
+    pub system: String,
+    pub target_kind: String,
+    pub target_id: String,
+    pub task_id: Option<String>,
+    pub run_id: Option<String>,
+    pub body: String,
+    pub metadata: Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OutboundUpdateRecord {
+    pub id: i64,
+    pub system: String,
+    pub target_kind: String,
+    pub target_id: String,
+    pub task_id: Option<String>,
+    pub run_id: Option<String>,
+    pub status: String,
+    pub body: String,
+    pub metadata: Value,
+    pub created_at: String,
+    pub updated_at: String,
 }
 
 pub fn now_utc_rfc3339() -> String {
@@ -297,6 +405,9 @@ mod tests {
         assert!(paths.queue_db_path.ends_with(".swb/ingest.sqlite3"));
         assert!(paths.state_db_path.ends_with(".swb/state.sqlite3"));
         assert!(paths.config_path.ends_with("swb.toml"));
+        assert!(paths.profiles_dir.ends_with("swb/profiles"));
+        assert!(paths.personas_dir.ends_with("swb/personas"));
+        assert!(paths.runtime_prompts_dir.ends_with("swb/prompts/runtime"));
     }
 
     #[test]
@@ -313,9 +424,20 @@ mod tests {
 
     #[test]
     fn run_requested_envelope_uses_request_identity() {
-        let request = RunRequest::new("TASK-1", "default", "codex", Some("hi".to_string()));
+        let request = RunRequest::with_gstack(
+            "TASK-1",
+            "default",
+            "codex",
+            Some("hi".to_string()),
+            Some("eng-review".to_string()),
+            Some("slack-review".to_string()),
+            Some("profile.eng-review".to_string()),
+            Some("sha256:test".to_string()),
+        );
         let envelope = IngestEnvelope::run_requested(&request);
         assert_eq!(envelope.run_id, request.run_id);
         assert_eq!(envelope.kind, IngestKind::RunRequested);
+        assert_eq!(envelope.payload["profile_id"], "eng-review");
+        assert_eq!(envelope.payload["persona_id"], "slack-review");
     }
 }

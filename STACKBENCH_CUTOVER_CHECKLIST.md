@@ -5,6 +5,7 @@ Use this when creating the fresh `stackbench` repo and preparing the first commi
 ## Include
 - `crates/swb-core`
 - `crates/swb-config`
+- `crates/swb-ingress-http`
 - `crates/swb-queue-sqlite`
 - `crates/swb-receiver`
 - `crates/swb-state`
@@ -15,6 +16,7 @@ Use this when creating the fresh `stackbench` repo and preparing the first commi
 - `crates/swb-cli`
 - `desktop/`
 - `docs/stackbench-workbench-macos.png`
+- `swb/`
 - root workspace files needed to build the Rust and desktop packages
 - the architecture and contract docs that still describe the current product truth
 
@@ -35,9 +37,11 @@ The first Stackbench commit should feel like a coherent product baseline:
 - desktop smoke tests pass
 - Electron packaging works locally
 - runtime and desktop docs match the shipped behavior
+- Slack and Linear ingress are documented as additive request surfaces, not state owners
 
 ## Immediate Follow-On
 1. validate `pnpm --dir desktop make` on Debian or Ubuntu
 2. bundle a production `swb` binary into packaged desktop builds
-3. improve login remediation for external-terminal flows
-4. add persona, profile, and `gstack` views after packaging is stable
+3. add outbound delivery for queued Slack and Linear status updates
+4. improve login remediation for external-terminal flows
+5. add Slack approval actions, Linear sync, and ingress lease fencing after outbound delivery is reliable

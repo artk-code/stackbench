@@ -1,0 +1,7 @@
+id = "slack-deploy"
+display_name = "Slack Deploy"
+description = "Queue a deployment-oriented run from Slack with rollout awareness."
+ingress = "slack"
+default_profile = "deploy"
+default_workflow = "default"
+default_adapter = "codex"

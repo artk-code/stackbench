@@ -2,8 +2,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use rusqlite::{params, Connection};
-use thiserror::Error;
 use swb_core::{now_utc_rfc3339, IngestEnvelope, SwbPaths};
+use thiserror::Error;
 
 #[derive(Debug, Clone)]
 pub struct SqliteIngestQueue {

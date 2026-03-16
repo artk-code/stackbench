@@ -90,6 +90,58 @@
           <div id="auth-cards" class="stack"></div>
         </section>
 
+        <section class="panel panel-soft">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Worker Types</p>
+              <h2>Role Library</h2>
+            </div>
+          </div>
+          <p class="panel-copy">
+            Worker types are markdown-backed runtime profiles under <code>swb/profiles/</code>. Edit the role, defaults, and instructions here, then use the same type from the dispatch form.
+          </p>
+          <div class="worker-type-shell">
+            <div id="worker-types-list" class="worker-type-list"></div>
+            <div class="worker-type-editor">
+              <div class="editor-grid">
+                <label>
+                  <span>ID</span>
+                  <input id="worker-type-id" type="text" placeholder="eng-review" />
+                </label>
+                <label>
+                  <span>Display Name</span>
+                  <input id="worker-type-display-name" type="text" placeholder="Engineering Review" />
+                </label>
+                <label>
+                  <span>Workflow</span>
+                  <input id="worker-type-workflow" type="text" placeholder="default" />
+                </label>
+                <label>
+                  <span>Adapter</span>
+                  <input id="worker-type-adapter" type="text" placeholder="codex" />
+                </label>
+              </div>
+              <label>
+                <span>Description</span>
+                <input id="worker-type-description" type="text" placeholder="Review a change for correctness, risk, and missing tests." />
+              </label>
+              <label>
+                <span>Instructions</span>
+                <textarea
+                  id="worker-type-instructions"
+                  rows="10"
+                  placeholder="Write the markdown instructions that define how this worker type behaves."
+                ></textarea>
+              </label>
+              <div class="actions">
+                <button id="new-worker-type" type="button" class="secondary">New Worker Type</button>
+                <button id="save-worker-type" type="button">Save Worker Type</button>
+              </div>
+              <div id="worker-type-status" class="status-line"></div>
+            </div>
+          </div>
+        </section>
+
         <section class="panel panel-bright">
           <div class="panel-head">
             <div>
@@ -106,11 +158,16 @@
               <input id="task-id" type="text" placeholder="TASK-123" required />
             </label>
             <label>
-              <span>Workflow</span>
+              <span>Worker Type</span>
+              <select id="profile-select"></select>
+            </label>
+            <div id="profile-hint" class="detail"></div>
+            <label>
+              <span>Workflow Override</span>
               <input id="workflow-name" type="text" placeholder="default" />
             </label>
             <label>
-              <span>Adapter</span>
+              <span>Adapter Override</span>
               <input id="adapter-name" type="text" placeholder="codex" />
             </label>
             <label>

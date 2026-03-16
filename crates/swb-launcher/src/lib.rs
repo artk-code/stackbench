@@ -4,7 +4,6 @@ use std::time::Duration;
 
 use serde::Serialize;
 use serde_json::json;
-use thiserror::Error;
 use swb_adapters::{
     execute_adapter, execution_result_payload, AdapterExecutionError, AdapterRunContext,
 };
@@ -15,6 +14,7 @@ use swb_jj::{ensure_run_workspace, JjError};
 use swb_queue_sqlite::{QueueError, SqliteIngestQueue};
 use swb_receiver::{Receiver, ReceiverError};
 use swb_state::{SqliteStateStore, StateError};
+use thiserror::Error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct LaunchReport {
